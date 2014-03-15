@@ -23,7 +23,7 @@ import android.support.v7.media.MediaRouter.RouteInfo;
 /**
  * A no-op implementation of the {@link IBaseCastConsumer}
  */
-public class BaseCastConsumerImpl implements IBaseCastConsumer {
+public class IBaseCastConsumerImpl implements IBaseCastConsumer {
 
     @Override
     public void onConnected() {

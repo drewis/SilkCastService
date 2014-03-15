@@ -43,7 +43,7 @@ import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
-import org.opensilk.cast.callbacks.BaseCastConsumerImpl;
+
 import org.opensilk.cast.callbacks.IBaseCastConsumer;
 import org.opensilk.cast.exceptions.CastException;
 import org.opensilk.cast.exceptions.NoConnectionException;
@@ -933,7 +933,7 @@ public abstract class BaseCastManager implements
      * Registers an {@link IBaseCastConsumer} interface with this class. Registered listeners will
      * be notified of changes to a variety of lifecycle callbacks that the interface provides.
      *
-     * @see BaseCastConsumerImpl
+     * @see org.opensilk.cast.callbacks.IBaseCastConsumerImpl
      * @param listener
      */
     public synchronized void addBaseCastConsumer(IBaseCastConsumer listener) {
