@@ -122,62 +122,18 @@ public class MediaCastManager extends BaseCastManager
      *            be created.
      * @return
      */
-    public static synchronized MediaCastManager initialize(Context context,
-            String applicationId, Class<?> targetActivity, String dataNamespace) {
-        if (null == sInstance) {
-            LOGD(TAG, "New instance of CastManager is created");
-            if (ConnectionResult.SUCCESS != GooglePlayServicesUtil
-                    .isGooglePlayServicesAvailable(context)) {
-                String msg = "Couldn't find the appropriate version of Goolge Play Services";
-                LOGE(TAG, msg);
-            }
-            sInstance = new MediaCastManager(context, applicationId, targetActivity, dataNamespace);
-            mCastManager = sInstance;
+    public static MediaCastManager initialize(Context context,
+                                                           String applicationId,
+                                                           String dataNamespace) {
+        LOGD(TAG, "New instance of CastManager is created");
+        if (ConnectionResult.SUCCESS != GooglePlayServicesUtil.isGooglePlayServicesAvailable(context)) {
+            String msg = "Couldn't find the appropriate version of Goolge Play Services";
+            LOGE(TAG, msg);
         }
-        return sInstance;
+        return new MediaCastManager(context, applicationId, dataNamespace);
     }
 
-    /**
-     * Returns the initialized instances of this class. If it is not initialized yet, a
-     * {@link CastException} will be thrown.
-     *
-     * @see initialze()
-     * @return
-     * @throws CastException
-     */
-    public static MediaCastManager getInstance() throws CastException {
-        if (null == sInstance) {
-            LOGE(TAG, "No CastManager instance was built, you need to build one first");
-            throw new CastException();
-        }
-        return sInstance;
-    }
-
-    /**
-     * Returns the initialized instances of this class. If it is not initialized yet, a
-     * {@link CastException} will be thrown. The {@link Context} that is passed as the argument will
-     * be used to update the context for the <code>VideoCastManager
-     * </code> instance. The main purpose of updating context is to enable the library to provide
-     * {@link Context} related functionalities, e.g. it can create an error dialog if needed. This
-     * method is preferred over the similar one without a context argument.
-     *
-     * @see {@link initialize()}, {@link setContext()}
-     * @param context the current Context
-     * @return
-     * @throws CastException
-     */
-    public static MediaCastManager getInstance(Context context) throws CastException {
-        if (null == sInstance) {
-            LOGE(TAG, "No CastManager instance was built, you need to build one first");
-            throw new CastException();
-        }
-        LOGD(TAG, "Updated context to: " + context.getClass().getName());
-        sInstance.mContext = context;
-        return sInstance;
-    }
-
-    private MediaCastManager(Context context, String applicationId, Class<?> targetActivity,
-                             String dataNamespace) {
+    private MediaCastManager(Context context, String applicationId, String dataNamespace) {
         super(context, applicationId);
         LOGD(TAG, "CastManager is instantiated");
         mDataNamespace = dataNamespace;

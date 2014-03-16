@@ -76,7 +76,7 @@ public class CastService extends Service {
     final MediaCastListener mCastManagerListener = new MediaCastListener();
 
     /**
-     * Service reference to CastManager instance
+     * CastManager, this is essentially a singleton
      */
     MediaCastManager mCastManager = null;
 
@@ -106,7 +106,12 @@ public class CastService extends Service {
         mRemoteBinder = new CastServiceImpl(this);
         mLocalBinder = new CastServiceBinder(this);
         mCastManager = MediaCastManager.initialize(getApplicationContext(),
-                getApplicationContext().getString(R.string.cast_id), null, null);
+                getApplicationContext().getString(R.string.cast_id), null);
+        if (BuildConfig.DEBUG) {
+            mCastManager.enableFeatures(MediaCastManager.FEATURE_DEBUGGING);
+        }
+        // We are streaming /from/ the device so it needs to exit
+        mCastManager.setStopOnDisconnect(true);
         mCastManager.addCastConsumer(mCastManagerListener);
     }
 

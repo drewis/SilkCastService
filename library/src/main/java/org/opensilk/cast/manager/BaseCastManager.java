@@ -95,7 +95,6 @@ public abstract class BaseCastManager implements
     protected int mCapabilities;
     protected boolean mConnectionSuspened;
     private boolean mWifiConnectivity = true;
-    protected static BaseCastManager mCastManager;
 
     /*************************************************************************/
     /************** Abstract Methods *****************************************/
@@ -184,10 +183,6 @@ public abstract class BaseCastManager implements
         } else {
             mWifiConnectivity = connected;
         }
-    }
-
-    public static BaseCastManager getCastManager() {
-        return mCastManager;
     }
 
     /**
