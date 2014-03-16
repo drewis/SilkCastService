@@ -31,7 +31,7 @@ public class CastServiceImpl extends ICastService.Stub {
     private final WeakReference<CastService> mService;
     private final ICastManager mCastManager;
 
-    public CastServiceImpl(CastService service) {
+    CastServiceImpl(CastService service) {
         mService = new WeakReference<>(service);
         mCastManager = new CastManagerImpl(service);
     }
