@@ -24,4 +24,7 @@
     <string name="failed_load">Failed to load media on the cast device</string>
     <string name="failed_seek">Failed to seek to the new position on the cast device</string>
     <string name="failed_receiver_player_error">Receiver player has encountered a sever error</string>
+
+    <string name="cast_error">Cast Error</string>
+    <string name="cast_failed_to_connect">Failed to connect to cast device %s</string>
 </resources>
