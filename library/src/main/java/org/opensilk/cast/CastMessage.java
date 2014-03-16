@@ -42,7 +42,7 @@ public class CastMessage {
     public static final int CAST_APPLICATION_STOPPED                = 0x00000009;
     /** arg1 contains error code */
     public static final int CAST_APPLICATION_STOP_FAILED            = 0x0000000A;
-    /** obj contains String status */
+    /** Data().getString("text") contains status */
     public static final int CAST_APPLICATION_STATUS_CHANGED         = 0x0000000B;
     /** empty */
     public static final int CAST_VOLUME_CHANGED                     = 0x0000000C;
@@ -56,7 +56,7 @@ public class CastMessage {
     public static final int CAST_REMOVED_NAMESPACE                  = 0x00000010;
     /** arg1 contains error code */
     public static final int CAST_DATA_MESSAGE_SEND_FAILED           = 0x00000011;
-    /** obj contains String status */
+    /** Data().getString("text") contains message */
     public static final int CAST_DATA_MESSAGE_RECEIVED              = 0x00000012;
     /** arg1 resource id of error string, arg2 error code */
     public static final int CAST_FAILED                             = 0x00000013;

@@ -2,6 +2,7 @@ package org.opensilk.cast;
 
 import android.app.Service;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -133,11 +134,6 @@ public class CastService extends Service {
         sendMessage(msg);
     }
 
-    private void sendMessage(int what, String text) {
-        Message msg = Message.obtain(null, what, 0, 0, text);
-        sendMessage(msg);
-    }
-
     private void sendMessage(Message msg) {
         for (Messenger m : mMessengers) {
             if (m != null) {
@@ -173,7 +169,11 @@ public class CastService extends Service {
 
         @Override
         public void onApplicationStatusChanged(String appStatus) {
-            sendMessage(CAST_APPLICATION_STATUS_CHANGED, appStatus);
+            Message msg = Message.obtain(null, CAST_APPLICATION_STATUS_CHANGED);
+            Bundle b = new Bundle(1);
+            b.putString("text", appStatus);
+            msg.setData(b);
+            sendMessage(msg);
         }
 
         @Override
@@ -208,7 +208,11 @@ public class CastService extends Service {
 
         @Override
         public void onDataMessageReceived(String message) {
-            sendMessage(CAST_DATA_MESSAGE_RECEIVED, message);
+            Message msg = Message.obtain(null, CAST_DATA_MESSAGE_SEND_FAILED);
+            Bundle b = new Bundle(1);
+            b.putString("text", message);
+            msg.setData(b);
+            sendMessage(msg);
         }
 
         @Override
