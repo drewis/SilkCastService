@@ -13,37 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.opensilk.cast.helpers;
 
-package org.opensilk.cast;
+import android.content.Context;
+import android.os.Messenger;
 
-import android.os.Binder;
-
-import org.opensilk.cast.manager.MediaCastManager;
-
-import java.lang.ref.WeakReference;
+import org.opensilk.cast.CastServiceBinder;
+import org.opensilk.cast.ICastService;
 
 /**
- * Binder class to allow local clients access to CastService
- *
  * Created by drew on 3/15/14.
  */
-public class CastServiceBinder extends Binder {
+abstract class BaseCastServiceManager {
 
-    private WeakReference<CastService> mService;
+    protected final Context mContext;
+    protected CastServiceConnectionCallback mCallback;
 
-    CastServiceBinder(CastService service) {
-        mService = new WeakReference<>(service);
+    BaseCastServiceManager(Context context) {
+        mContext = context;
     }
 
-    /**
-     * @return MediaCastManager Instance
-     */
-    public MediaCastManager getCastManager() {
-        try {
-            return mService.get().mCastManager;
-        } catch (NullPointerException ignored) {
-        }
-        return null;
+    public void setCallback(CastServiceConnectionCallback cb) {
+        mCallback = cb;
     }
 
 }

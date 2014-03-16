@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.opensilk.cast;
+package org.opensilk.cast.helpers;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -25,46 +24,36 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 
+import org.opensilk.cast.CastService;
+import org.opensilk.cast.CastServiceImpl;
+import org.opensilk.cast.ICastService;
+
 /**
  * Created by drew on 3/15/14.
  */
-public class CastServiceHelper {
+public class RemoteCastServiceManager extends BaseCastServiceManager {
 
-    public interface ConnectionCallback {
-        public void onCastServiceConnected();
-        public void onCastServiceDisconnected();
-    }
-
-    private final Context mContext;
     private Messenger mMessenger;
-    private ConnectionCallback mCallback;
     private ICastService mService;
 
-    public CastServiceHelper(Context context) {
-        mContext = context;
+    public RemoteCastServiceManager(Context context, Messenger messenger) {
+        super(context);
+        mMessenger = messenger;
     }
 
-    public void setMessenger(Messenger m) {
-        mMessenger = m;
-    }
-
-    public void setCallback(ConnectionCallback cb) {
-        mCallback = cb;
-    }
-
-    public void bindLocal() {
+    public void bind() {
         mContext.bindService(new Intent(mContext, CastService.class)
-                .setAction(CastService.ACTION_BIND_LOCAL), mServiceConnection, Context.BIND_AUTO_CREATE);
-    }
-
-    public void bindRemote() {
-        mContext.bindService(new Intent(mContext, CastService.class)
-                .setAction(CastService.ACTION_BIND_REMOTE), mServiceConnection, Context.BIND_AUTO_CREATE);
+                    .setAction(CastService.ACTION_BIND_REMOTE),
+                mServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
     public void unbind() {
         unregisterMessenger(mMessenger);
         mContext.unbindService(mServiceConnection);
+    }
+
+    public ICastService getService() {
+        return mService;
     }
 
     public boolean registerMessenger(Messenger messenger) {
@@ -118,5 +107,4 @@ public class CastServiceHelper {
             }
         }
     };
-
 }
