@@ -106,6 +106,7 @@ public class CastService extends Service {
         mLocalBinder = new CastServiceBinder(this);
         mCastManager = MediaCastManager.initialize(getApplicationContext(),
                 getApplicationContext().getString(R.string.cast_id), null, null);
+        mCastManager.addCastConsumer(mCastManagerListener);
     }
 
     @Override
@@ -118,6 +119,7 @@ public class CastService extends Service {
         super.onDestroy();
         mRemoteBinder = null;
         mLocalBinder = null;
+        mCastManager.removeCastConsumer(mCastManagerListener);
         mCastManager = null;
     }
 
