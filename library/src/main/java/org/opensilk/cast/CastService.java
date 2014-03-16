@@ -9,13 +9,18 @@ import android.os.Messenger;
 
 import org.opensilk.cast.manager.MediaCastManager;
 
+
 import java.util.HashSet;
 import java.util.Set;
+
+import static org.opensilk.cast.util.LogUtils.makeLogTag;
+import static org.opensilk.cast.util.LogUtils.LOGD;
 
 /**
  * Created by drew on 3/15/14.
  */
 public class CastService extends Service {
+    private static final String TAG = makeLogTag(CastService.class);
 
     /**
      * Action for same process binding
@@ -56,8 +61,10 @@ public class CastService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         if (ACTION_BIND_LOCAL.equals(intent.getAction())) {
+            LOGD(TAG, "onBind() local");
             return mLocalBinder;
         } else if (ACTION_BIND_REMOTE.equals(intent.getAction())) {
+            LOGD(TAG, "onBind() remote");
             return mRemoteBinder;
         }
         throw new RuntimeException("Action not defined");
@@ -70,11 +77,13 @@ public class CastService extends Service {
 
     @Override
     public boolean onUnbind(Intent intent) {
+        LOGD(TAG, "onUnbind() " + intent.toString());
         return super.onUnbind(intent);
     }
 
     @Override
     public void onCreate() {
+        LOGD(TAG, "onCreate()");
         super.onCreate();
         mRemoteBinder = new CastServiceImpl(this);
         mLocalBinder = new CastServiceBinder(this);
@@ -96,10 +105,12 @@ public class CastService extends Service {
 
     @Override
     public void onDestroy() {
+        LOGD(TAG, "onDestroy()");
         super.onDestroy();
         mRemoteBinder = null;
         mLocalBinder = null;
         mCastManager.removeCastConsumer(mCastManagerListener);
+        mCastManagerListener = null;
         mCastManager = null;
     }
 
