@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">SilkCastService</string>
+
+    <string name="cast_id">OVERRIDE THIS IN YOUR PROJECT</string>
+
     <string name="media_route_menu_title">Play on&#8230;</string>
     <!-- Used in Router Contrller Dialog -->
     <string name="no_media_info">No media information available</string>

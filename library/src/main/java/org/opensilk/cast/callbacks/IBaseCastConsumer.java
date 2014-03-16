@@ -16,10 +16,11 @@
 
 package org.opensilk.cast.callbacks;
 
-import com.google.android.gms.common.ConnectionResult;
-import org.opensilk.cast.exceptions.OnFailedListener;
-
 import android.support.v7.media.MediaRouter.RouteInfo;
+
+import com.google.android.gms.common.ConnectionResult;
+
+import org.opensilk.cast.exceptions.OnFailedListener;
 
 public interface IBaseCastConsumer extends OnFailedListener {
 
@@ -52,7 +53,7 @@ public interface IBaseCastConsumer extends OnFailedListener {
      * @param result
      * @return <code>true</code> if you want the library handle the error message
      */
-    public boolean onConnectionFailed(ConnectionResult result);
+    public void onConnectionFailed(ConnectionResult result);
 
     /**
      * Called when the MediaRouterCallback detects a non-default route.

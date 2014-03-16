@@ -14,18 +14,36 @@
  * limitations under the License.
  */
 
-package org.opensilk.cast.callbacks;
+package org.opensilk.cast;
+
+import android.os.Binder;
+
+import org.opensilk.cast.manager.MediaCastManager;
+
+import java.lang.ref.WeakReference;
 
 /**
- * @see IBaseCastConsumer
+ * Binder class to allow local clients access to CastService
  *
  * Created by drew on 3/15/14.
  */
-interface IBaseCastRemoteConsumer {
-    void onConnected();
-    void onConnectionSuspended(int cause);
-    void onDisconnected();
-    //boolean onConnectionFailed(ConnectionResult result);
-    //void onCastDeviceDetected(RouteInfo info);
-    void onConnectivityRecovered();
+public class CastServiceBinder extends Binder {
+
+    private WeakReference<CastService> mService;
+
+    CastServiceBinder(CastService service) {
+        mService = new WeakReference<>(service);
+    }
+
+    /**
+     * @return MediaCastManager Instance
+     */
+    MediaCastManager getCastManager() {
+        try {
+            return mService.get().mCastManager;
+        } catch (NullPointerException ignored) {
+        }
+        return null;
+    }
+
 }

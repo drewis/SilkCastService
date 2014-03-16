@@ -2,6 +2,8 @@ package org.opensilk.cast;
 
 import android.content.Context;
 
+import org.opensilk.cast.manager.MediaCastManager;
+
 /**
  * Created by drew on 2/19/14.
  */

@@ -16,9 +16,16 @@
 
 package org.opensilk.cast;
 
+import android.os.IBinder;
+
+import org.opensilk.cast.ICastManager;
+
 /**
+ * See Impl class for doc
+ *
  * Created by drew on 3/15/14.
  */
 interface ICastService {
-    void doStuff();
+    IBinder getMessenger();
+    ICastManager getCastManager();
 }

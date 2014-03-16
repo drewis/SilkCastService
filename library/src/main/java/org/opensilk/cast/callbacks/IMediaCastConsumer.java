@@ -49,7 +49,7 @@ public interface IMediaCastConsumer extends IBaseCastConsumer {
      * @param errorCode
      * @return <code>true</code> if you want the library handle the error message
      */
-    public boolean onApplicationConnectionFailed(int errorCode);
+    public void onApplicationConnectionFailed(int errorCode);
 
     /**
      * Called if stopApplication() was SuccessFull;

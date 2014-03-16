@@ -17,9 +17,11 @@
 package org.opensilk.cast;
 
 /**
+ * See Impl class for doc
+ *
  * Created by drew on 2/20/14.
  */
-oneway interface CastRouteListener {
+oneway interface ICastRouteListener {
     void onRouteSelected(in Bundle castDevice);
     void onRouteUnselected();
 }

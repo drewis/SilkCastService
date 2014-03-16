@@ -1,4 +1,4 @@
-package org.opensilk.cast;
+package org.opensilk.cast.manager;
 
 /**
  * Enumerates various stages during a session recovery

@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-package org.opensilk.cast;
-
-import static org.opensilk.cast.util.LogUtils.LOGD;
-import static org.opensilk.cast.util.LogUtils.LOGE;
+package org.opensilk.cast.manager;
 
 import android.content.Context;
-import android.os.RemoteException;
 import android.support.v7.media.MediaRouter.RouteInfo;
 import android.text.TextUtils;
 
@@ -39,14 +35,14 @@ import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 
+import org.json.JSONObject;
+import org.opensilk.cast.R;
 import org.opensilk.cast.callbacks.IMediaCastConsumer;
 import org.opensilk.cast.exceptions.CastException;
 import org.opensilk.cast.exceptions.NoConnectionException;
 import org.opensilk.cast.exceptions.OnFailedListener;
 import org.opensilk.cast.exceptions.TransientNetworkDisconnectionException;
 import org.opensilk.cast.util.LogUtils;
-
-import org.json.JSONObject;
 import org.opensilk.cast.util.Utils;
 
 import java.io.IOException;
@@ -54,8 +50,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.opensilk.cast.util.LogUtils.LOGD;
+import static org.opensilk.cast.util.LogUtils.LOGE;
+
 /**
- * A concrete subclass of {@link org.opensilk.cast.BaseCastManager} that is suitable for casting video contents (it
+ * A concrete subclass of {@link org.opensilk.cast.manager.BaseCastManager} that is suitable for casting video contents (it
  * also provides a single custom data channel/namespace if an out-of-bound communication is needed).
  * <p>
  * This is a singleton that needs to be "initialized" (by calling <code>initialize()</code>) prior
@@ -104,7 +103,7 @@ public class MediaCastManager extends BaseCastManager
     private int mIdleReason;
     private final String mDataNamespace;
     private Cast.MessageReceivedCallback mDataChannel;
-    protected Set<IMediaCastConsumer> mCastConsumers;
+    protected final Set<IMediaCastConsumer> mMediaCastConsumers = new HashSet<IMediaCastConsumer>();
 
     /**
      * Initializes the VideoCastManager for clients. Before clients can use VideoCastManager, they
@@ -181,7 +180,6 @@ public class MediaCastManager extends BaseCastManager
                              String dataNamespace) {
         super(context, applicationId);
         LOGD(TAG, "CastManager is instantiated");
-        mCastConsumers = new HashSet<IMediaCastConsumer>();
         mDataNamespace = dataNamespace;
     }
 
@@ -483,22 +481,13 @@ public class MediaCastManager extends BaseCastManager
 
     private void onApplicationDisconnected(int errorCode) {
         LOGD(TAG, "onApplicationDisconnected() reached with error code: " + errorCode);
-        for (IMediaCastConsumer consumer : mCastConsumers) {
+        for (IMediaCastConsumer consumer : mMediaCastConsumers) {
             try {
                 consumer.onApplicationDisconnected(errorCode);
             } catch (Exception e) {
                 LOGE(TAG, "onApplicationDisconnected(): Failed to inform " + consumer, e);
             }
         }
-        int ii = mListeners.beginBroadcast();
-        while (ii-->0) {
-            try {
-                mListeners.getBroadcastItem(ii).onApplicationDisconnected(errorCode);
-            } catch (RemoteException e) {
-                LOGE(TAG, "onApplicationDisconnected(): ", e);
-            }
-        }
-        mListeners.finishBroadcast();
         if (null != mMediaRouter) {
             mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
         }
@@ -515,7 +504,7 @@ public class MediaCastManager extends BaseCastManager
             LOGD(TAG, "onApplicationStatusChanged() reached: "
                     + Cast.CastApi.getApplicationStatus(mApiClient));
 
-            for (IMediaCastConsumer consumer : mCastConsumers) {
+            for (IMediaCastConsumer consumer : mMediaCastConsumers) {
                 try {
                     consumer.onApplicationStatusChanged(appStatus);
                 } catch (Exception e) {
@@ -533,7 +522,7 @@ public class MediaCastManager extends BaseCastManager
         try {
             volume = getVolume();
             boolean isMute = isMute();
-            for (IMediaCastConsumer consumer : mCastConsumers) {
+            for (IMediaCastConsumer consumer : mMediaCastConsumers) {
                 try {
                     consumer.onVolumeChanged(volume, isMute);
                 } catch (Exception e) {
@@ -586,7 +575,7 @@ public class MediaCastManager extends BaseCastManager
 
                         }
                     });
-            for (IMediaCastConsumer consumer : mCastConsumers) {
+            for (IMediaCastConsumer consumer : mMediaCastConsumers) {
                 try {
                     consumer.onApplicationConnected(appMetadata, sessionId, wasLaunched);
                 } catch (Exception e) {
@@ -618,7 +607,7 @@ public class MediaCastManager extends BaseCastManager
      */
     @Override
     void onApplicationStopped() {
-        for (IMediaCastConsumer consumer : mCastConsumers) {
+        for (IMediaCastConsumer consumer : mMediaCastConsumers) {
             try {
                 consumer.onApplicationStopped();
             } catch (Exception e) {
@@ -633,7 +622,7 @@ public class MediaCastManager extends BaseCastManager
      */
     @Override
     public void onApplicationStopFailed(int errorCode) {
-        for (IMediaCastConsumer consumer : mCastConsumers) {
+        for (IMediaCastConsumer consumer : mMediaCastConsumers) {
             try {
                 consumer.onApplicationStopFailed(errorCode);
             } catch (Exception e) {
@@ -655,22 +644,13 @@ public class MediaCastManager extends BaseCastManager
             }
             return;
         } else {
-            for (IMediaCastConsumer consumer : mCastConsumers) {
+            for (IMediaCastConsumer consumer : mMediaCastConsumers) {
                 try {
                     consumer.onApplicationConnectionFailed(errorCode);
                 } catch (Exception e) {
                     LOGE(TAG, "onApplicationLaunchFailed(): Failed to inform " + consumer, e);
                 }
             }
-            int ii = mListeners.beginBroadcast();
-            while (ii-->0) {
-                try {
-                    mListeners.getBroadcastItem(ii).onApplicationConnectionFailed(errorCode);
-                } catch (RemoteException e) {
-                    LOGE(TAG, "onApplicationLaunchFailed(): ", e);
-                }
-            }
-            mListeners.finishBroadcast();
             selectDevice(null);
             if (null != mMediaRouter) {
                 mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
@@ -1057,7 +1037,7 @@ public class MediaCastManager extends BaseCastManager
 
             @Override
             public void onMessageReceived(CastDevice castDevice, String namespace, String message) {
-                for (IMediaCastConsumer consumer : mCastConsumers) {
+                for (IMediaCastConsumer consumer : mMediaCastConsumers) {
                     try {
                         consumer.onDataMessageReceived(message);
                     } catch (Exception e) {
@@ -1074,7 +1054,7 @@ public class MediaCastManager extends BaseCastManager
     }
 
     private void onMessageSendFailed(int errorCode) {
-        for (IMediaCastConsumer consumer : mCastConsumers) {
+        for (IMediaCastConsumer consumer : mMediaCastConsumers) {
             try {
                 consumer.onDataMessageSendFailed(errorCode);
             } catch (Exception e) {
@@ -1180,7 +1160,7 @@ public class MediaCastManager extends BaseCastManager
                 LOGD(TAG,"status: unknown");
                 idle = true;
             }
-            for (IMediaCastConsumer consumer : mCastConsumers) {
+            for (IMediaCastConsumer consumer : mMediaCastConsumers) {
                 try {
                     consumer.onRemoteMediaPlayerStatusUpdated();
 //                    consumer.onVolumeChanged(volume, isMute); //Dont know why they were calling this every damn time
@@ -1202,7 +1182,7 @@ public class MediaCastManager extends BaseCastManager
      */
     public void onRemoteMediaPlayerMetadataUpdated() {
         LOGD(TAG, "onRemoteMediaPlayerMetadataUpdated() reached");
-        for (IMediaCastConsumer consumer : mCastConsumers) {
+        for (IMediaCastConsumer consumer : mMediaCastConsumers) {
             try {
                 consumer.onRemoteMediaPlayerMetadataUpdated();
             } catch (Exception e) {
@@ -1225,7 +1205,7 @@ public class MediaCastManager extends BaseCastManager
     public synchronized void addCastConsumer(IMediaCastConsumer listener) {
         if (null != listener) {
             super.addBaseCastConsumer(listener);
-            mCastConsumers.add(listener);
+            mMediaCastConsumers.add(listener);
             LOGD(TAG, "Successfully added the new CastConsumer listener " + listener);
         }
     }
@@ -1238,10 +1218,9 @@ public class MediaCastManager extends BaseCastManager
     public synchronized void removeCastConsumer(IMediaCastConsumer listener) {
         if (null != listener) {
             super.removeBaseCastConsumer(listener);
-            mCastConsumers.remove(listener);
+            mMediaCastConsumers.remove(listener);
         }
     }
-
 
     /*************************************************************/
     /***** Implementing abstract methods of BaseCastManager ******/
