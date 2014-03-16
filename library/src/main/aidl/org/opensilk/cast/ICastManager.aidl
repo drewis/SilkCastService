@@ -17,7 +17,6 @@
 package org.opensilk.cast;
 
 import org.opensilk.cast.ICastRouteListener;
-//import org.opensilk.cast.CastManagerCallback;
 
 /**
  * See Impl class for doc
@@ -29,6 +28,4 @@ interface ICastManager {
     int getReconnectionStatus();
     void setReconnectionStatus(int status);
     ICastRouteListener getRouteListener();
-    //void registerListener(CastManagerCallback cb);
-    //void unregisterListener(CastManagerCallback cb);
 }
