@@ -35,8 +35,8 @@ import static org.opensilk.cast.util.LogUtils.LOGD;
 /**
  * Created by drew on 3/15/14.
  */
-public class CastService extends Service {
-    private static final String TAG = makeLogTag(CastService.class);
+public class SilkCastService extends Service {
+    private static final String TAG = makeLogTag(SilkCastService.class);
 
     /**
      * Action for same process binding

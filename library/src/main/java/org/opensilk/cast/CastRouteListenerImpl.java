@@ -40,9 +40,9 @@ public class CastRouteListenerImpl extends ICastRouteListener.Stub {
 
     private static final String TAG = "CastRouteListener";
 
-    private WeakReference<CastService> mService;
+    private WeakReference<SilkCastService> mService;
 
-    CastRouteListenerImpl(CastService service) {
+    CastRouteListenerImpl(SilkCastService service) {
         mService = new WeakReference<>(service);
     }
 

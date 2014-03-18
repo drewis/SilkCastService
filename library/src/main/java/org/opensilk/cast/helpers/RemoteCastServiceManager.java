@@ -24,7 +24,7 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 
-import org.opensilk.cast.CastService;
+import org.opensilk.cast.SilkCastService;
 import org.opensilk.cast.CastServiceImpl;
 import org.opensilk.cast.ICastService;
 
@@ -42,8 +42,8 @@ public class RemoteCastServiceManager extends BaseCastServiceManager {
     }
 
     public void bind() {
-        mContext.bindService(new Intent(mContext, CastService.class)
-                    .setAction(CastService.ACTION_BIND_REMOTE),
+        mContext.bindService(new Intent(mContext, SilkCastService.class)
+                    .setAction(SilkCastService.ACTION_BIND_REMOTE),
                 mServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
@@ -62,7 +62,7 @@ public class RemoteCastServiceManager extends BaseCastServiceManager {
         }
         try {
             Messenger serviceMessenger = new Messenger(mService.getMessenger());
-            Message msg = Message.obtain(null, CastService.MESSENGER_REGISTER);
+            Message msg = Message.obtain(null, SilkCastService.MESSENGER_REGISTER);
             msg.replyTo = messenger;
             serviceMessenger.send(msg);
             return true;
@@ -77,7 +77,7 @@ public class RemoteCastServiceManager extends BaseCastServiceManager {
         }
         try {
             Messenger serviceMessenger = new Messenger(mService.getMessenger());
-            Message msg = Message.obtain(null, CastService.MESSENGER_UNREGISTER);
+            Message msg = Message.obtain(null, SilkCastService.MESSENGER_UNREGISTER);
             msg.replyTo = messenger;
             serviceMessenger.send(msg);
             return true;

@@ -29,9 +29,9 @@ import java.lang.ref.WeakReference;
  */
 public class CastServiceBinder extends Binder {
 
-    private WeakReference<CastService> mService;
+    private WeakReference<SilkCastService> mService;
 
-    CastServiceBinder(CastService service) {
+    CastServiceBinder(SilkCastService service) {
         mService = new WeakReference<>(service);
     }
 

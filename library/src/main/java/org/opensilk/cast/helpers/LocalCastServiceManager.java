@@ -21,7 +21,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 
-import org.opensilk.cast.CastService;
+import org.opensilk.cast.SilkCastService;
 import org.opensilk.cast.CastServiceBinder;
 
 /**
@@ -36,8 +36,8 @@ public class LocalCastServiceManager extends BaseCastServiceManager {
     }
 
     public void bind() {
-        mContext.bindService(new Intent(mContext, CastService.class)
-                    .setAction(CastService.ACTION_BIND_LOCAL),
+        mContext.bindService(new Intent(mContext, SilkCastService.class)
+                    .setAction(SilkCastService.ACTION_BIND_LOCAL),
                 mServiceConnection, Context.BIND_AUTO_CREATE);
     }
 

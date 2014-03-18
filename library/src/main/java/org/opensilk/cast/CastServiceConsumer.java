@@ -35,9 +35,9 @@ import static org.opensilk.cast.CastMessage.*;
  * Created by drew on 3/15/14.
  */
 public class CastServiceConsumer implements IMediaCastConsumer {
-    private final WeakReference<CastService> mService;
+    private final WeakReference<SilkCastService> mService;
 
-    CastServiceConsumer(CastService service) {
+    CastServiceConsumer(SilkCastService service) {
         mService = new WeakReference<>(service);
     }
 

@@ -28,10 +28,10 @@ import java.lang.ref.WeakReference;
  */
 public class CastServiceImpl extends ICastService.Stub {
 
-    private final WeakReference<CastService> mService;
+    private final WeakReference<SilkCastService> mService;
     private final ICastManager mCastManager;
 
-    CastServiceImpl(CastService service) {
+    CastServiceImpl(SilkCastService service) {
         mService = new WeakReference<>(service);
         mCastManager = new CastManagerImpl(service);
     }
