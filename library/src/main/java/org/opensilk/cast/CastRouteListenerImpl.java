@@ -25,6 +25,7 @@ import com.google.android.gms.cast.CastDevice;
 
 import org.opensilk.cast.exceptions.NoConnectionException;
 import org.opensilk.cast.exceptions.TransientNetworkDisconnectionException;
+import org.opensilk.cast.util.LogUtils;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -38,7 +39,7 @@ import static org.opensilk.cast.util.LogUtils.LOGE;
  */
 public class CastRouteListenerImpl extends ICastRouteListener.Stub {
 
-    private static final String TAG = "CastRouteListener";
+    private static final String TAG = LogUtils.makeLogTag("ICastRouteListener");
 
     private WeakReference<SilkCastService> mService;
 
@@ -58,9 +59,9 @@ public class CastRouteListenerImpl extends ICastRouteListener.Stub {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
-                try {
-                    mService.get().mCastManager.selectDevice(device);
-                } catch (NullPointerException ignored) {
+                SilkCastService service = mService.get();
+                if (service != null) {
+                    service.mCastManager.selectDevice(device);
                 }
             }
         });
@@ -76,12 +77,15 @@ public class CastRouteListenerImpl extends ICastRouteListener.Stub {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
-                try {
-                    mService.get().mCastManager.stopApplication();
-                } catch (IOException | TransientNetworkDisconnectionException | NoConnectionException e) {
-                    LOGE(TAG, "Failed to stop application: " + e.getClass().getSimpleName() + " " + e.getMessage());
-                } catch (NullPointerException ignored) {
+                SilkCastService service = mService.get();
+                if (service != null) {
+                    try {
+                        service.mCastManager.stopApplication();
+                    } catch (IOException|TransientNetworkDisconnectionException|NoConnectionException e) {
+                        LOGE(TAG, "Failed to stop application: " + e.getClass().getSimpleName() + " " + e.getMessage());
+                    }
                 }
+
             }
         });
     }

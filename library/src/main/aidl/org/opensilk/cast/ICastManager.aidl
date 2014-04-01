@@ -24,8 +24,8 @@ import org.opensilk.cast.ICastRouteListener;
  * Created by drew on 2/19/14.
  */
 interface ICastManager {
-    void changeVolume(double increment);
+    boolean changeVolume(double increment);
     int getReconnectionStatus();
-    void setReconnectionStatus(int status);
+    boolean setReconnectionStatus(int status);
     ICastRouteListener getRouteListener();
 }

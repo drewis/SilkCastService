@@ -39,9 +39,9 @@ public class CastServiceBinder extends Binder {
      * @return MediaCastManager Instance
      */
     public MediaCastManager getCastManager() {
-        try {
-            return mService.get().mCastManager;
-        } catch (NullPointerException ignored) {
+        SilkCastService service = mService.get();
+        if (service != null) {
+            return service.mCastManager;
         }
         return null;
     }

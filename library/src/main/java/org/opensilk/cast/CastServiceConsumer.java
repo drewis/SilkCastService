@@ -156,12 +156,15 @@ public class CastServiceConsumer implements IMediaCastConsumer {
     }
 
     private void sendMessage(Message msg) {
-        for (Messenger m : mService.get().mMessengers) {
-            if (m != null) {
-                try {
-                    m.send(Message.obtain(msg));
-                } catch (RemoteException e) {
-                    e.printStackTrace();
+        SilkCastService service = mService.get();
+        if (service != null) {
+            for (Messenger m : service.mMessengers) {
+                if (m != null) {
+                    try {
+                        m.send(Message.obtain(msg));
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }

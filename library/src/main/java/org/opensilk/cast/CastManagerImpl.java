@@ -22,8 +22,11 @@ import org.opensilk.cast.exceptions.CastException;
 import org.opensilk.cast.exceptions.NoConnectionException;
 import org.opensilk.cast.exceptions.TransientNetworkDisconnectionException;
 import org.opensilk.cast.manager.ReconnectionStatus;
+import org.opensilk.cast.util.LogUtils;
 
 import java.lang.ref.WeakReference;
+
+import static org.opensilk.cast.util.LogUtils.LOGE;
 
 /**
  * Front end for remote activity to communicate with the cast mananger
@@ -31,6 +34,7 @@ import java.lang.ref.WeakReference;
  * Created by drew on 3/15/14.
  */
 public class CastManagerImpl extends ICastManager.Stub {
+    private static final String TAG = LogUtils.makeLogTag("ICastManager");
 
     private WeakReference<SilkCastService> mService;
     private ICastRouteListener mCastRouteListener;
@@ -43,40 +47,51 @@ public class CastManagerImpl extends ICastManager.Stub {
     /**
      * Changes remote volume
      * @param increment
+     * @return true if request was sent, false on error
      * @throws RemoteException
      */
     @Override
-    public void changeVolume(double increment) throws RemoteException {
-        try {
-            mService.get().mCastManager.incrementVolume(increment);
-        } catch (CastException|TransientNetworkDisconnectionException|NoConnectionException e) {
-            e.printStackTrace();
-        } catch (NullPointerException ignored) { }
+    public boolean changeVolume(double increment) throws RemoteException {
+        SilkCastService service = mService.get();
+        if (service != null) {
+            try {
+                service.mCastManager.incrementVolume(increment);
+                return true;
+            } catch (CastException|TransientNetworkDisconnectionException|NoConnectionException e) {
+                LOGE(TAG, "Failed to change remote volume: " + e.getClass().getSimpleName() + " " + e.getMessage());
+            }
+        }
+        return false;
     }
 
     /**
-     * @return a ReconnectionStatus value
+     * @return a ReconnectionStatus value (@{ReconnectionStatus.INACTIVE} on error)
      * @throws RemoteException
      */
     @Override
     public int getReconnectionStatus() throws RemoteException {
         int status = ReconnectionStatus.INACTIVE;
-        try {
-            status = mService.get().mCastManager.getReconnectionStatus();
-        } catch (NullPointerException ignored) { }
+        SilkCastService service = mService.get();
+        if (service != null) {
+            status = service.mCastManager.getReconnectionStatus();
+        }
         return status;
     }
 
     /**
      * Sets Reconnection status
      * @param status a ReconnectionStatus value
+     * @return true if request was sent, false on error
      * @throws RemoteException
      */
     @Override
-    public void setReconnectionStatus(int status) throws RemoteException {
-        try {
-            mService.get().mCastManager.setReconnectionStatus(status);
-        } catch (NullPointerException ignored) { }
+    public boolean setReconnectionStatus(int status) throws RemoteException {
+        SilkCastService service = mService.get();
+        if (service != null) {
+            service.mCastManager.setReconnectionStatus(status);
+            return true;
+        }
+        return false;
     }
 
     /**

@@ -43,9 +43,9 @@ public class CastServiceImpl extends ICastService.Stub {
      */
     @Override
     public IBinder getMessenger() throws RemoteException {
-        try {
-            return mService.get().mCallbackMessenger.getBinder();
-        } catch (NullPointerException ignored) {
+        SilkCastService service = mService.get();
+        if (service != null) {
+            return service.mCallbackMessenger.getBinder();
         }
         return null;
     }
