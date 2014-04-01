@@ -102,7 +102,7 @@ public class CastServiceConsumer implements IMediaCastConsumer {
 
     @Override
     public void onDataMessageReceived(String message) {
-        Message msg = Message.obtain(null, CAST_DATA_MESSAGE_SEND_FAILED);
+        Message msg = Message.obtain(null, CAST_DATA_MESSAGE_RECEIVED);
         Bundle b = new Bundle(1);
         b.putString("text", message);
         msg.setData(b);
