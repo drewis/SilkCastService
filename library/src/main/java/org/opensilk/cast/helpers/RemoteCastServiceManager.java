@@ -61,11 +61,16 @@ public class RemoteCastServiceManager extends BaseCastServiceManager {
             return false;
         }
         try {
-            Messenger serviceMessenger = new Messenger(mService.getMessenger());
-            Message msg = Message.obtain(null, SilkCastService.MESSENGER_REGISTER);
-            msg.replyTo = messenger;
-            serviceMessenger.send(msg);
-            return true;
+            if (mService != null) {
+                Messenger serviceMessenger = new Messenger(mService.getMessenger());
+                Message msg = Message.obtain(null, SilkCastService.MESSENGER_REGISTER);
+                if (msg != null) {
+                    msg.replyTo = messenger;
+                    serviceMessenger.send(msg);
+                    return true;
+                }
+            }
+            return false;
         } catch (RemoteException e) {
             return false;
         }
@@ -76,11 +81,16 @@ public class RemoteCastServiceManager extends BaseCastServiceManager {
             return false;
         }
         try {
-            Messenger serviceMessenger = new Messenger(mService.getMessenger());
-            Message msg = Message.obtain(null, SilkCastService.MESSENGER_UNREGISTER);
-            msg.replyTo = messenger;
-            serviceMessenger.send(msg);
-            return true;
+            if (mService != null) {
+                Messenger serviceMessenger = new Messenger(mService.getMessenger());
+                Message msg = Message.obtain(null, SilkCastService.MESSENGER_UNREGISTER);
+                if (msg != null) {
+                    msg.replyTo = messenger;
+                    serviceMessenger.send(msg);
+                    return true;
+                }
+            }
+            return false;
         } catch (RemoteException e) {
             return false;
         }
