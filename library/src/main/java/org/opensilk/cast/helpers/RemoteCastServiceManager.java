@@ -15,8 +15,10 @@
  */
 package org.opensilk.cast.helpers;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
@@ -24,45 +26,40 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 
+import org.opensilk.cast.CastServiceBinder;
 import org.opensilk.cast.SilkCastService;
 import org.opensilk.cast.CastServiceImpl;
 import org.opensilk.cast.ICastService;
 
+import java.util.WeakHashMap;
+
 /**
  * Created by drew on 3/15/14.
  */
-public class RemoteCastServiceManager extends BaseCastServiceManager {
+public class RemoteCastServiceManager {
 
-    private Messenger mMessenger;
-    private ICastService mService;
+    /**
+     * ICastServiceImpl
+     */
+    public static ICastService sCastService;
 
-    public RemoteCastServiceManager(Context context, Messenger messenger) {
-        super(context);
-        mMessenger = messenger;
+    private static final WeakHashMap<Context, ServiceBinder> sConnectionMap;
+
+    static {
+        sConnectionMap = new WeakHashMap<>();
     }
 
-    public void bind() {
-        mContext.bindService(new Intent(mContext, SilkCastService.class)
-                    .setAction(SilkCastService.ACTION_BIND_REMOTE),
-                mServiceConnection, Context.BIND_AUTO_CREATE);
+    private RemoteCastServiceManager() {
+        //static
     }
 
-    public void unbind() {
-        unregisterMessenger(mMessenger);
-        mContext.unbindService(mServiceConnection);
-    }
-
-    public ICastService getService() {
-        return mService;
-    }
-
-    public boolean registerMessenger(Messenger messenger) {
+    public static boolean registerMessenger(Messenger messenger) {
         if (messenger == null) {
             return false;
         }
         try {
-            if (mService != null) {
-                Messenger serviceMessenger = new Messenger(mService.getMessenger());
+            if (sCastService != null) {
+                Messenger serviceMessenger = new Messenger(sCastService.getMessenger());
                 Message msg = Message.obtain(null, SilkCastService.MESSENGER_REGISTER);
                 if (msg != null) {
                     msg.replyTo = messenger;
@@ -76,13 +73,13 @@ public class RemoteCastServiceManager extends BaseCastServiceManager {
         }
     }
 
-    public boolean unregisterMessenger(Messenger messenger) {
+    public static boolean unregisterMessenger(Messenger messenger) {
         if (messenger == null) {
             return false;
         }
         try {
-            if (mService != null) {
-                Messenger serviceMessenger = new Messenger(mService.getMessenger());
+            if (sCastService != null) {
+                Messenger serviceMessenger = new Messenger(sCastService.getMessenger());
                 Message msg = Message.obtain(null, SilkCastService.MESSENGER_UNREGISTER);
                 if (msg != null) {
                     msg.replyTo = messenger;
@@ -96,25 +93,85 @@ public class RemoteCastServiceManager extends BaseCastServiceManager {
         }
     }
 
-    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+    /**
+     * @param context The {@link Context} to use
+     * @param callback The {@link org.opensilk.cast.helpers.CastServiceConnectionCallback} to use
+     * @return The new instance of {@link ServiceToken}
+     */
+    public static ServiceToken bindToService(final Context context, final Messenger messenger,
+                                             final CastServiceConnectionCallback callback) {
+        final ContextWrapper contextWrapper;
+        if (context instanceof Activity) {
+            Activity realActivity = ((Activity)context).getParent();
+            if (realActivity == null) {
+                realActivity = (Activity) context;
+            }
+            contextWrapper = new ContextWrapper(realActivity);
+        } else {
+            contextWrapper = new ContextWrapper(context);
+        }
+        final ServiceBinder binder = new ServiceBinder(callback, messenger);
+        if (contextWrapper.bindService(
+                new Intent().setClass(contextWrapper, SilkCastService.class)
+                .setAction(SilkCastService.ACTION_BIND_REMOTE), binder, Context.BIND_AUTO_CREATE)) {
+            sConnectionMap.put(contextWrapper, binder);
+            return new ServiceToken(contextWrapper);
+        }
+        return null;
+    }
+
+    /**
+     * @param token The {@link ServiceToken} to unbind from
+     */
+    public static void unbindFromService(final ServiceToken token) {
+        if (token == null) {
+            return;
+        }
+        final ContextWrapper mContextWrapper = token.mWrappedContext;
+        final ServiceBinder mBinder = sConnectionMap.remove(mContextWrapper);
+        if (mBinder == null) {
+            return;
+        }
+        unregisterMessenger(mBinder.mMessenger);
+        mContextWrapper.unbindService(mBinder);
+        if (sConnectionMap.isEmpty()) {
+            sCastService = null;
+        }
+    }
+
+    public static final class ServiceBinder implements ServiceConnection {
+        private final CastServiceConnectionCallback mCallback;
+        private final Messenger mMessenger;
+
+        public ServiceBinder(final CastServiceConnectionCallback callback, final Messenger messenger) {
+            mCallback = callback;
+            mMessenger = messenger;
+        }
+
         @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            mService = CastServiceImpl.asInterface(service);
-            if (mService != null) {
+        public void onServiceConnected(final ComponentName className, final IBinder service) {
+            sCastService = CastServiceImpl.asInterface(service);
+            if (sCastService != null) {
                 registerMessenger(mMessenger);
                 if (mCallback != null) {
                     mCallback.onCastServiceConnected();
                 }
             }
-
         }
 
         @Override
-        public void onServiceDisconnected(ComponentName name) {
-            mService = null;
+        public void onServiceDisconnected(final ComponentName className) {
             if (mCallback != null) {
                 mCallback.onCastServiceDisconnected();
             }
+            sCastService = null;
         }
-    };
+    }
+
+    public static final class ServiceToken {
+        public ContextWrapper mWrappedContext;
+        public ServiceToken(final ContextWrapper context) {
+            mWrappedContext = context;
+        }
+    }
 }

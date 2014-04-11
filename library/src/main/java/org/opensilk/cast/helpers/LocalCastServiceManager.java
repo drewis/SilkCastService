@@ -15,8 +15,10 @@
  */
 package org.opensilk.cast.helpers;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
@@ -24,36 +26,83 @@ import android.os.IBinder;
 import org.opensilk.cast.SilkCastService;
 import org.opensilk.cast.CastServiceBinder;
 
+import java.util.WeakHashMap;
+
 /**
  * Created by drew on 3/15/14.
  */
-public class LocalCastServiceManager extends BaseCastServiceManager {
+public class LocalCastServiceManager {
 
-    private CastServiceBinder mService;
+    /**
+     * CastServiceBinder
+     */
+    public static CastServiceBinder sCastService;
 
-    public LocalCastServiceManager(Context context) {
-        super(context);
+    private static final WeakHashMap<Context, ServiceBinder> sConnectionMap;
+
+    static {
+        sConnectionMap = new WeakHashMap<>();
     }
 
-    public void bind() {
-        mContext.bindService(new Intent(mContext, SilkCastService.class)
-                    .setAction(SilkCastService.ACTION_BIND_LOCAL),
-                mServiceConnection, Context.BIND_AUTO_CREATE);
+    private LocalCastServiceManager() {
+        //static
     }
 
-    public void unbind() {
-        mContext.unbindService(mServiceConnection);
+    /**
+     * @param context The {@link Context} to use
+     * @param callback The {@link org.opensilk.cast.helpers.CastServiceConnectionCallback} to use
+     * @return The new instance of {@link ServiceToken}
+     */
+    public static ServiceToken bindToService(final Context context, final CastServiceConnectionCallback callback) {
+        final ContextWrapper contextWrapper;
+        if (context instanceof Activity) {
+            Activity realActivity = ((Activity)context).getParent();
+            if (realActivity == null) {
+                realActivity = (Activity) context;
+            }
+            contextWrapper = new ContextWrapper(realActivity);
+        } else {
+            contextWrapper = new ContextWrapper(context);
+        }
+        final ServiceBinder binder = new ServiceBinder(callback);
+        if (contextWrapper.bindService(
+                new Intent().setClass(contextWrapper, SilkCastService.class)
+                .setAction(SilkCastService.ACTION_BIND_LOCAL), binder, Context.BIND_AUTO_CREATE)) {
+            sConnectionMap.put(contextWrapper, binder);
+            return new ServiceToken(contextWrapper);
+        }
+        return null;
     }
 
-    public CastServiceBinder getService() {
-        return mService;
+    /**
+     * @param token The {@link ServiceToken} to unbind from
+     */
+    public static void unbindFromService(final ServiceToken token) {
+        if (token == null) {
+            return;
+        }
+        final ContextWrapper mContextWrapper = token.mWrappedContext;
+        final ServiceBinder mBinder = sConnectionMap.remove(mContextWrapper);
+        if (mBinder == null) {
+            return;
+        }
+        mContextWrapper.unbindService(mBinder);
+        if (sConnectionMap.isEmpty()) {
+            sCastService = null;
+        }
     }
 
-    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+    public static final class ServiceBinder implements ServiceConnection {
+        private final CastServiceConnectionCallback mCallback;
+
+        public ServiceBinder(final CastServiceConnectionCallback callback) {
+            mCallback = callback;
+        }
+
         @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            mService = (CastServiceBinder) service;
-            if (mService != null) {
+        public void onServiceConnected(final ComponentName className, final IBinder service) {
+            sCastService = (CastServiceBinder) service;
+            if (sCastService != null) {
                 if (mCallback != null) {
                     mCallback.onCastServiceConnected();
                 }
@@ -61,12 +110,19 @@ public class LocalCastServiceManager extends BaseCastServiceManager {
         }
 
         @Override
-        public void onServiceDisconnected(ComponentName name) {
-            mService = null;
+        public void onServiceDisconnected(final ComponentName className) {
             if (mCallback != null) {
                 mCallback.onCastServiceDisconnected();
             }
+            sCastService = null;
         }
-    };
+    }
+
+    public static final class ServiceToken {
+        public ContextWrapper mWrappedContext;
+        public ServiceToken(final ContextWrapper context) {
+            mWrappedContext = context;
+        }
+    }
 
 }
