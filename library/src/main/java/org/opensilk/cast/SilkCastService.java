@@ -18,19 +18,16 @@ package org.opensilk.cast;
 
 import android.app.Service;
 import android.content.Intent;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
 import android.os.Messenger;
 
 import org.opensilk.cast.manager.MediaCastManager;
 
-
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.opensilk.cast.util.LogUtils.makeLogTag;
 import static org.opensilk.cast.util.LogUtils.LOGD;
+import static org.opensilk.cast.util.LogUtils.makeLogTag;
 
 /**
  * Created by drew on 3/15/14.
@@ -88,6 +85,7 @@ public class SilkCastService extends Service {
 
     @Override
     public void onRebind(Intent intent) {
+        LOGD(TAG, "onRebind()");
         super.onRebind(intent);
     }
 
@@ -106,9 +104,7 @@ public class SilkCastService extends Service {
         mCastManagerListener = new CastServiceConsumer(this);
         mCastManager = MediaCastManager.initialize(getApplicationContext(),
                 getApplicationContext().getString(R.string.cast_id), null);
-        if (BuildConfig.DEBUG) {
-            mCastManager.enableFeatures(MediaCastManager.FEATURE_DEBUGGING);
-        }
+        //mCastManager.enableFeatures(MediaCastManager.FEATURE_DEBUGGING);
         // We are streaming /from/ the device so it needs to exit
         mCastManager.setStopOnDisconnect(true);
         mCastManager.addCastConsumer(mCastManagerListener);
@@ -128,29 +124,7 @@ public class SilkCastService extends Service {
         mCastManager.removeCastConsumer(mCastManagerListener);
         mCastManagerListener = null;
         mCastManager = null;
+        mMessengers.clear();
     }
 
-    /**
-     * Handle registering and unregistering remote messengers
-     *
-     * This seems a little round about, need to look into
-     * passing a raw IBinder to add to mMessengers
-     */
-
-    public static final int MESSENGER_REGISTER = 1;
-    public static final int MESSENGER_UNREGISTER = 2;
-
-    final Messenger mCallbackMessenger = new Messenger(new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MESSENGER_REGISTER:
-                    mMessengers.add(msg.replyTo);
-                    break;
-                case MESSENGER_UNREGISTER:
-                    mMessengers.remove(msg.replyTo);
-                    break;
-            }
-        }
-    });
 }

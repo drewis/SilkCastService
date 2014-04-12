@@ -26,6 +26,7 @@ import org.opensilk.cast.ICastManager;
  * Created by drew on 3/15/14.
  */
 interface ICastService {
-    IBinder getMessenger();
     ICastManager getCastManager();
+    void registerMessenger(IBinder messenger);
+    void unregisterMessenger(IBinder messenger);
 }

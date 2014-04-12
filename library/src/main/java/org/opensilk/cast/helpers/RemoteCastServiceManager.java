@@ -53,19 +53,18 @@ public class RemoteCastServiceManager {
         //static
     }
 
+    /**
+     * Register an additional {@link android.os.Messenger} with {@link org.opensilk.cast.SilkCastService}
+     * @param messenger
+     * @return
+     */
     public static boolean registerMessenger(Messenger messenger) {
         if (messenger == null) {
             return false;
         }
         try {
             if (sCastService != null) {
-                Messenger serviceMessenger = new Messenger(sCastService.getMessenger());
-                Message msg = Message.obtain(null, SilkCastService.MESSENGER_REGISTER);
-                if (msg != null) {
-                    msg.replyTo = messenger;
-                    serviceMessenger.send(msg);
-                    return true;
-                }
+                sCastService.registerMessenger(messenger.getBinder());
             }
             return false;
         } catch (RemoteException e) {
@@ -73,19 +72,18 @@ public class RemoteCastServiceManager {
         }
     }
 
+    /**
+     * Unregister a {@link android.os.Messenger} with {@link org.opensilk.cast.SilkCastService}
+     * @param messenger
+     * @return
+     */
     public static boolean unregisterMessenger(Messenger messenger) {
         if (messenger == null) {
             return false;
         }
         try {
             if (sCastService != null) {
-                Messenger serviceMessenger = new Messenger(sCastService.getMessenger());
-                Message msg = Message.obtain(null, SilkCastService.MESSENGER_UNREGISTER);
-                if (msg != null) {
-                    msg.replyTo = messenger;
-                    serviceMessenger.send(msg);
-                    return true;
-                }
+                sCastService.unregisterMessenger(messenger.getBinder());
             }
             return false;
         } catch (RemoteException e) {
@@ -95,7 +93,8 @@ public class RemoteCastServiceManager {
 
     /**
      * @param context The {@link Context} to use
-     * @param callback The {@link org.opensilk.cast.helpers.CastServiceConnectionCallback} to use
+     * @param messenger The {@link android.os.Messenger} to receive callbacks on
+     * @param callback The {@link org.opensilk.cast.helpers.CastServiceConnectionCallback} to use can be null
      * @return The new instance of {@link ServiceToken}
      */
     public static ServiceToken bindToService(final Context context, final Messenger messenger,

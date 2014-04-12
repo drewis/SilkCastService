@@ -17,9 +17,13 @@
 package org.opensilk.cast;
 
 import android.os.IBinder;
+import android.os.Messenger;
 import android.os.RemoteException;
 
 import java.lang.ref.WeakReference;
+
+import static org.opensilk.cast.util.LogUtils.makeLogTag;
+import static org.opensilk.cast.util.LogUtils.LOGD;
 
 /**
  * Implementation for remote processes to access CastService
@@ -27,6 +31,7 @@ import java.lang.ref.WeakReference;
  * Created by drew on 3/15/14.
  */
 public class CastServiceImpl extends ICastService.Stub {
+    private static final String TAG = makeLogTag(CastServiceImpl.class);
 
     private final WeakReference<SilkCastService> mService;
     private final ICastManager mCastManager;
@@ -37,25 +42,41 @@ public class CastServiceImpl extends ICastService.Stub {
     }
 
     /**
-     * @return CastService messenger
-     *         Clients can then register a messenger to receive callbacks with
-     * @throws RemoteException
-     */
-    @Override
-    public IBinder getMessenger() throws RemoteException {
-        SilkCastService service = mService.get();
-        if (service != null) {
-            return service.mCallbackMessenger.getBinder();
-        }
-        return null;
-    }
-
-    /**
      * @return proxy implementation of ICastManager
      * @throws RemoteException
      */
     @Override
     public ICastManager getCastManager() throws RemoteException {
         return mCastManager;
+    }
+
+    /**
+     * Register a remote messenger to receive callbacks from the CastManager on
+     * @param messenger binder representation of messenger (use with messenger.getBinder())
+     * @throws RemoteException
+     */
+    @Override
+    public void registerMessenger(IBinder messenger) throws RemoteException {
+        LOGD(TAG, "registerMessenger()");
+        SilkCastService service = mService.get();
+        if (service != null) {
+            service.mMessengers.add(new Messenger(messenger));
+        }
+    }
+
+    /**
+     * unRegister a remote messenger
+     * @param messenger binder representation of messenger (use with messenger.getBinder())
+     * @throws RemoteException
+     */
+    @Override
+    public void unregisterMessenger(IBinder messenger) throws RemoteException {
+        LOGD(TAG, "unregisterMessenger()");
+        SilkCastService service = mService.get();
+        if (service != null) {
+            // This seems to work ok since the IBinder will make the new messenger point to the same object
+            service.mMessengers.remove(new Messenger(messenger));
+            LOGD(TAG, "unregisterMessenger() " + service.mMessengers.size() + " messengers remain");
+        }
     }
 }
