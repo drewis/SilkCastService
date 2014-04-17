@@ -106,7 +106,7 @@ public class Utils {
             // we want to remove
             pref.edit().remove(key).apply();
         } else {
-            pref.edit().putString(key, value).commit();
+            pref.edit().putString(key, value).apply();
         }
     }
 
@@ -124,9 +124,20 @@ public class Utils {
             // we want to remove
             pref.edit().remove(key).apply();
         } else {
-            pref.edit().putFloat(key, value).commit();
+            pref.edit().putFloat(key, value).apply();
         }
 
+    }
+
+    /**
+     * Saves boolean to cast shared prefs
+     * @param context
+     * @param key
+     * @param value
+     */
+    public static void saveBooleanToPreference(Context context, String key, boolean value) {
+        SharedPreferences pref = context.getSharedPreferences(PREF_FILE, Context.MODE_MULTI_PROCESS);
+        pref.edit().putBoolean(key, value).apply();
     }
 
     /**
