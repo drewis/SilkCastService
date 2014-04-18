@@ -28,6 +28,7 @@ import com.google.android.gms.common.ConnectionResult;
 import org.opensilk.cast.callbacks.IMediaCastConsumer;
 
 import java.lang.ref.WeakReference;
+import java.util.Iterator;
 
 import static org.opensilk.cast.CastMessage.*;
 
@@ -158,12 +159,17 @@ public class CastServiceConsumer implements IMediaCastConsumer {
     private void sendMessage(Message msg) {
         SilkCastService service = mService.get();
         if (service != null) {
-            for (Messenger m : service.mMessengers) {
-                if (m != null) {
-                    try {
-                        m.send(Message.obtain(msg));
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
+            synchronized (service.mMessengerLock) {
+                Iterator<Messenger> ii = service.mMessengers.iterator();
+                while (ii.hasNext()) {
+                    Messenger m = ii.next();
+                    if (m != null) {
+                        try {
+                            m.send(Message.obtain(msg));
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                            ii.remove();
+                        }
                     }
                 }
             }

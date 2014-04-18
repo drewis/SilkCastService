@@ -74,9 +74,11 @@ public class CastServiceImpl extends ICastService.Stub {
         LOGD(TAG, "unregisterMessenger()");
         SilkCastService service = mService.get();
         if (service != null) {
-            // This seems to work ok since the IBinder will make the new messenger point to the same object
-            service.mMessengers.remove(new Messenger(messenger));
-            LOGD(TAG, "unregisterMessenger() " + service.mMessengers.size() + " messengers remain");
+            synchronized (service.mMessengerLock) {
+                // This seems to work ok since the IBinder will make the new messenger point to the same object
+                service.mMessengers.remove(new Messenger(messenger));
+                LOGD(TAG, "unregisterMessenger() " + service.mMessengers.size() + " messengers remain");
+            }
         }
     }
 }

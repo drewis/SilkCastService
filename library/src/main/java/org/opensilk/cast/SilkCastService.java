@@ -61,6 +61,7 @@ public class SilkCastService extends Service {
      * Local clients should just register a CastConsumer directly with CastManager
      */
     Set<Messenger> mMessengers = new HashSet<>();
+    final Object mMessengerLock = new Object();
 
     /**
      * Local callback handler, will forward events to remote messengers
