@@ -28,4 +28,5 @@ interface ICastManager {
     int getReconnectionStatus();
     boolean setReconnectionStatus(int status);
     ICastRouteListener getRouteListener();
+    boolean retryConnect();
 }

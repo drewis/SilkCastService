@@ -176,7 +176,7 @@ public abstract class BaseCastManager implements
 
                 @Override
                 public void run() {
-                    reconnectSessionIfPossible(mContext, false, 10);
+                    reconnectSessionIfPossible(10);
                 }
             }, 1000);
 
@@ -597,8 +597,8 @@ public abstract class BaseCastManager implements
      * @param showDialog
      * @param timeoutInSeconds
      */
-    public void reconnectSessionIfPossible(final Context context, final boolean showDialog,
-            final int timeoutInSeconds) {
+    public void reconnectSessionIfPossible(final int timeoutInSeconds) {
+        LOGD(TAG, "reconnectSessionIfPossible: isConnected=" + isConnected());
         if (isConnected()) {
             return;
         }
@@ -688,8 +688,8 @@ public abstract class BaseCastManager implements
      * @param context
      * @param showDialog if set to <code>true</code>, a dialog will be shown
      */
-    public void reconnectSessionIfPossible(final Context context, final boolean showDialog) {
-        reconnectSessionIfPossible(context, showDialog, SESSION_RECOVERY_TIMEOUT);
+    public void reconnectSessionIfPossible() {
+        reconnectSessionIfPossible(SESSION_RECOVERY_TIMEOUT);
     }
 
     /************************************************************/

@@ -103,4 +103,18 @@ public class CastManagerImpl extends ICastManager.Stub {
         return mCastRouteListener;
     }
 
+
+    @Override
+    public boolean retryConnect() throws RemoteException {
+        SilkCastService service = mService.get();
+        if (service != null) {
+            if (service.mCastManager.isConnected()) {
+                service.mCastManager.onConnected(null);
+            } else {
+                service.mCastManager.reconnectSessionIfPossible(3);
+            }
+            return true;
+        }
+        return false;
+    }
 }
