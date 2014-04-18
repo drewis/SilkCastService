@@ -26,6 +26,7 @@ import org.opensilk.cast.manager.MediaCastManager;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.opensilk.cast.util.LogUtils.DEBUG_LOG;
 import static org.opensilk.cast.util.LogUtils.LOGD;
 import static org.opensilk.cast.util.LogUtils.makeLogTag;
 
@@ -104,7 +105,13 @@ public class SilkCastService extends Service {
         mCastManagerListener = new CastServiceConsumer(this);
         mCastManager = MediaCastManager.initialize(getApplicationContext(),
                 getApplicationContext().getString(R.string.cast_id), null);
-        //mCastManager.enableFeatures(MediaCastManager.FEATURE_DEBUGGING);
+        // Projects can override to enable debug logging
+        if (getResources().getBoolean(R.bool.cast_debug_logging)) {
+            DEBUG_LOG = true;
+        }
+        if (DEBUG_LOG) {
+            mCastManager.enableFeatures(MediaCastManager.FEATURE_DEBUGGING);
+        }
         // We are streaming /from/ the device so it needs to exit
         mCastManager.setStopOnDisconnect(true);
         mCastManager.addCastConsumer(mCastManagerListener);

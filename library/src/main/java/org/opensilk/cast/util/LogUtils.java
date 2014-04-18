@@ -18,8 +18,6 @@ package org.opensilk.cast.util;
 
 import android.util.Log;
 
-import org.opensilk.cast.BuildConfig;
-
 /**
  * Provides a simple wrapper to control logging in development vs production environment. This
  * library should only use the wrapper methods that this class provides.
@@ -29,6 +27,8 @@ public class LogUtils {
     private static final String LOG_PREFIX = "CAST_";
     private static final int LOG_PREFIX_LENGTH = LOG_PREFIX.length();
     private static final int MAX_LOG_TAG_LENGTH = 23;
+
+    public static boolean DEBUG_LOG = false;
 
     private LogUtils() {
     }
@@ -50,26 +50,26 @@ public class LogUtils {
 
     @SuppressWarnings("unused")
     public static void LOGD(final String tag, String message) {
-        if (BuildConfig.DEBUG || Log.isLoggable(tag, Log.DEBUG)) {
+        if (DEBUG_LOG || Log.isLoggable(tag, Log.DEBUG)) {
             Log.d(tag, message);
         }
     }
 
     @SuppressWarnings("unused")
     public static void LOGD(final String tag, String message, Throwable cause) {
-        if (BuildConfig.DEBUG || Log.isLoggable(tag, Log.DEBUG)) {
+        if (DEBUG_LOG || Log.isLoggable(tag, Log.DEBUG)) {
             Log.d(tag, message, cause);
         }
     }
 
     public static void LOGV(final String tag, String message) {
-        if (BuildConfig.DEBUG && Log.isLoggable(tag, Log.VERBOSE)) {
+        if (DEBUG_LOG && Log.isLoggable(tag, Log.VERBOSE)) {
             Log.v(tag, message);
         }
     }
 
     public static void LOGV(final String tag, String message, Throwable cause) {
-        if (BuildConfig.DEBUG && Log.isLoggable(tag, Log.VERBOSE)) {
+        if (DEBUG_LOG && Log.isLoggable(tag, Log.VERBOSE)) {
             Log.v(tag, message, cause);
         }
     }
