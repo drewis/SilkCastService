@@ -79,13 +79,8 @@ public class CastRouteListenerImpl extends ICastRouteListener.Stub {
             public void run() {
                 SilkCastService service = mService.get();
                 if (service != null) {
-                    try {
-                        service.mCastManager.stopApplication();
-                    } catch (IOException|TransientNetworkDisconnectionException|NoConnectionException e) {
-                        LOGE(TAG, "Failed to stop application: " + e.getClass().getSimpleName() + " " + e.getMessage());
-                    }
+                    service.mCastManager.selectDevice(null);
                 }
-
             }
         });
     }
