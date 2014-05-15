@@ -129,6 +129,7 @@ public class MediaCastManager extends BaseCastManager
         if (ConnectionResult.SUCCESS != GooglePlayServicesUtil.isGooglePlayServicesAvailable(context)) {
             String msg = "Couldn't find the appropriate version of Goolge Play Services";
             LOGE(TAG, msg);
+            Utils.saveBooleanToPreference(context, "pref_cast_enabled", false);
         }
         return new MediaCastManager(context, applicationId, dataNamespace);
     }
