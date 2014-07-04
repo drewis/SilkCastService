@@ -16,24 +16,29 @@
 
 package org.opensilk.cast.callbacks;
 
-import android.support.v7.media.MediaRouter;
-
 import com.google.android.gms.cast.ApplicationMetadata;
-import com.google.android.gms.common.ConnectionResult;
 
 /**
- * This is a no-ops implementation of {@link IMediaCastConsumer} so that the clients that like to
- * (partially) implement {@link IMediaCastConsumer} can extend this class and only override the
+ * This is a no-ops implementation of {@link IVideoCastConsumer} so that the clients that like to
+ * (partially) implement {@link IVideoCastConsumer} can extend this class and only override the
  * desired methods.
  */
-public class IMediaCastConsumerImpl implements IMediaCastConsumer {
+public class MediaCastConsumerImpl extends BaseCastConsumerImpl
+        implements IMediaCastConsumer {
 
     @Override
-    public void onApplicationConnected(ApplicationMetadata appMetadata, String sessionId, boolean wasLaunched) {
+    public void onApplicationConnected(ApplicationMetadata appMetadata,
+            String sessionId, boolean wasLaunched) {
     }
 
     @Override
-    public void onApplicationConnectionFailed(int errorCode) {
+    public boolean onApplicationConnectionFailed(int errorCode) {
+        return true;
+    }
+
+    @Override
+    public void onApplicationStopped() {
+
     }
 
     @Override
@@ -57,10 +62,6 @@ public class IMediaCastConsumerImpl implements IMediaCastConsumer {
     }
 
     @Override
-    public void onApplicationStopped() {
-    }
-
-    @Override
     public void onApplicationStopFailed(int errorCode) {
     }
 
@@ -76,38 +77,4 @@ public class IMediaCastConsumerImpl implements IMediaCastConsumer {
     public void onDataMessageReceived(String message) {
     }
 
-    @Override
-    public void onConnected() {
-
-    }
-
-    @Override
-    public void onConnectionSuspended(int cause) {
-
-    }
-
-    @Override
-    public void onDisconnected() {
-
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult result) {
-
-    }
-
-    @Override
-    public void onCastDeviceDetected(MediaRouter.RouteInfo info) {
-
-    }
-
-    @Override
-    public void onConnectivityRecovered() {
-
-    }
-
-    @Override
-    public void onFailed(int resourceId, int statusCode) {
-
-    }
 }

@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
+import android.support.v7.media.MediaRouter;
 
 import com.google.android.gms.cast.CastDevice;
 
@@ -29,6 +30,7 @@ import org.opensilk.cast.util.LogUtils;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.List;
 
 import static org.opensilk.cast.util.LogUtils.LOGE;
 
@@ -61,7 +63,18 @@ public class CastRouteListenerImpl extends ICastRouteListener.Stub {
             public void run() {
                 SilkCastService service = mService.get();
                 if (service != null) {
-                    service.mCastManager.selectDevice(device);
+                    List<MediaRouter.RouteInfo> routeInfos = service.mCastManager.getMediaRouter().getRoutes();
+                    for (MediaRouter.RouteInfo ri : routeInfos) {
+                        Bundle b = ri.getExtras();
+                        if (b != null) {
+                            CastDevice d = CastDevice.getFromBundle(b);
+                            if (device.isSameDevice(d)) {
+                                service.mCastManager.getMediaRouter().selectRoute(ri);
+                                return;
+                            }
+                        }
+                    }
+                    LOGE(TAG, "Unable to find requested route");
                 }
             }
         });
@@ -79,7 +92,7 @@ public class CastRouteListenerImpl extends ICastRouteListener.Stub {
             public void run() {
                 SilkCastService service = mService.get();
                 if (service != null) {
-                    service.mCastManager.selectDevice(null);
+                    service.mCastManager.onDeviceSelected(null);
                 }
             }
         });

@@ -21,7 +21,7 @@ import android.os.RemoteException;
 import org.opensilk.cast.exceptions.CastException;
 import org.opensilk.cast.exceptions.NoConnectionException;
 import org.opensilk.cast.exceptions.TransientNetworkDisconnectionException;
-import org.opensilk.cast.manager.ReconnectionStatus;
+import org.opensilk.cast.manager.BaseCastManager.ReconnectionStatus;
 import org.opensilk.cast.util.LogUtils;
 
 import java.lang.ref.WeakReference;
@@ -69,13 +69,13 @@ public class CastManagerImpl extends ICastManager.Stub {
      * @throws RemoteException
      */
     @Override
-    public int getReconnectionStatus() throws RemoteException {
-        int status = ReconnectionStatus.INACTIVE;
+    public String getReconnectionStatus() throws RemoteException {
+        ReconnectionStatus status = ReconnectionStatus.INACTIVE;
         SilkCastService service = mService.get();
         if (service != null) {
             status = service.mCastManager.getReconnectionStatus();
         }
-        return status;
+        return status.toString();
     }
 
     /**
@@ -85,11 +85,15 @@ public class CastManagerImpl extends ICastManager.Stub {
      * @throws RemoteException
      */
     @Override
-    public boolean setReconnectionStatus(int status) throws RemoteException {
+    public boolean setReconnectionStatus(String status) throws RemoteException {
         SilkCastService service = mService.get();
         if (service != null) {
-            service.mCastManager.setReconnectionStatus(status);
-            return true;
+            try {
+                service.mCastManager.setReconnectionStatus(ReconnectionStatus.valueOf(status));
+                return true;
+            } catch (Exception e) { //cant remember what it throws IllegalARgument??
+                //fall
+            }
         }
         return false;
     }
@@ -111,7 +115,7 @@ public class CastManagerImpl extends ICastManager.Stub {
             if (service.mCastManager.isConnected()) {
                 service.mCastManager.onConnected(null);
             } else {
-                service.mCastManager.reconnectSessionIfPossible(3);
+                service.mCastManager.reconnectSessionIfPossible(service, false, 3);
             }
             return true;
         }

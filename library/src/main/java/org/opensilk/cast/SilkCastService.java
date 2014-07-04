@@ -94,7 +94,7 @@ public class SilkCastService extends Service {
     @Override
     public boolean onUnbind(Intent intent) {
         LOGD(TAG, "onUnbind() " + intent.toString());
-        return super.onUnbind(intent);
+        return true;
     }
 
     @Override
@@ -110,9 +110,9 @@ public class SilkCastService extends Service {
         if (getResources().getBoolean(R.bool.cast_debug_logging)) {
             DEBUG_LOG = true;
         }
-        if (DEBUG_LOG) {
-            mCastManager.enableFeatures(MediaCastManager.FEATURE_DEBUGGING);
-        }
+//        if (DEBUG_LOG) {
+//            mCastManager.enableFeatures(MediaCastManager.FEATURE_DEBUGGING);
+//        }
         // We are streaming /from/ the device so it needs to exit
         mCastManager.setStopOnDisconnect(true);
         mCastManager.addCastConsumer(mCastManagerListener);
@@ -129,7 +129,7 @@ public class SilkCastService extends Service {
         super.onDestroy();
         mRemoteBinder = null;
         mLocalBinder = null;
-        mCastManager.removeCastConsumer(mCastManagerListener);
+        mCastManager.nukeConsumers();
         mCastManagerListener = null;
         mCastManager = null;
         mMessengers.clear();

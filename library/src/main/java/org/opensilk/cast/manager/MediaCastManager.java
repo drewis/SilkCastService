@@ -16,9 +16,28 @@
 
 package org.opensilk.cast.manager;
 
+import static org.opensilk.cast.util.LogUtils.LOGD;
+import static org.opensilk.cast.util.LogUtils.LOGE;
+
+import android.annotation.SuppressLint;
+import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.res.Resources.NotFoundException;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.AudioManager;
+import android.media.MediaMetadataRetriever;
+import android.media.RemoteControlClient;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.support.v7.app.MediaRouteDialogFactory;
 import android.support.v7.media.MediaRouter.RouteInfo;
 import android.text.TextUtils;
+import android.view.View;
 
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
@@ -27,6 +46,7 @@ import com.google.android.gms.cast.Cast.MessageReceivedCallback;
 import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.CastStatusCodes;
 import com.google.android.gms.cast.MediaInfo;
+import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaStatus;
 import com.google.android.gms.cast.RemoteMediaPlayer;
 import com.google.android.gms.cast.RemoteMediaPlayer.MediaChannelResult;
@@ -34,10 +54,10 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
-
-import org.json.JSONObject;
+import com.google.android.gms.common.images.WebImage;
 import org.opensilk.cast.R;
 import org.opensilk.cast.callbacks.IMediaCastConsumer;
+import org.opensilk.cast.callbacks.MediaCastConsumerImpl;
 import org.opensilk.cast.exceptions.CastException;
 import org.opensilk.cast.exceptions.NoConnectionException;
 import org.opensilk.cast.exceptions.OnFailedListener;
@@ -45,17 +65,21 @@ import org.opensilk.cast.exceptions.TransientNetworkDisconnectionException;
 import org.opensilk.cast.util.LogUtils;
 import org.opensilk.cast.util.Utils;
 
+import org.json.JSONObject;
+
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import static org.opensilk.cast.util.LogUtils.LOGD;
-import static org.opensilk.cast.util.LogUtils.LOGE;
-
 /**
- * A concrete subclass of {@link org.opensilk.cast.manager.BaseCastManager} that is suitable for casting video contents (it
- * also provides a single custom data channel/namespace if an out-of-bound communication is needed).
+ * A concrete subclass of {@link BaseCastManager} that is suitable for casting video contents (it
+ * also provides a single custom data channel/namespace if an out-of-bound communication is
+ * needed).
  * <p>
  * This is a singleton that needs to be "initialized" (by calling <code>initialize()</code>) prior
  * to usage. Subsequent to initialization, an easier way to get access to the singleton class is to
@@ -72,13 +96,13 @@ import static org.opensilk.cast.util.LogUtils.LOGE;
  * corresponding widget to their layout xml and then calling <code>addMiniController()</code>. This
  * class manages various states of the remote cast device.Client applications, however, can
  * complement the default behavior of this class by hooking into various callbacks that it provides
- * (see {@link org.opensilk.cast.callbacks.IMediaCastConsumer}). Since the number of these callbacks is usually much larger than
- * what a single application might be interested in, there is a no-op implementation of this
- * interface (see {@link org.opensilk.cast.callbacks.IMediaCastConsumerImpl}) that applications can subclass to override only
- * those methods that they are interested in. Since this library depends on the cast functionalities
- * provided by the Google Play services, the library checks to ensure that the right version of that
- * service is installed. It also provides a simple static method
- * <code>checkGooglePlaySevices()</code> that clients can call at an early stage of their
+ * (see {@link IMediaCastConsumer}). Since the number of these callbacks is usually much larger
+ * than what a single application might be interested in, there is a no-op implementation of this
+ * interface (see {@link VideoCastConsumerImpl}) that applications can subclass to override only
+ * those methods that they are interested in. Since this library depends on the cast
+ * functionalities provided by the Google Play services, the library checks to ensure that the
+ * right version of that service is installed. It also provides a simple static method
+ * <code>checkGooglePlayServices()</code> that clients can call at an early stage of their
  * applications to provide a dialog for users if they need to update/activate their GMS library. To
  * learn more about this library, please read the documentation that is distributed as part of this
  * library.
@@ -86,9 +110,18 @@ import static org.opensilk.cast.util.LogUtils.LOGE;
 public class MediaCastManager extends BaseCastManager
         implements OnFailedListener {
 
+    public static final String EXTRA_HAS_AUTH = "hasAuth";
+    public static final String EXTRA_MEDIA = "media";
+    public static final String EXTRA_START_POINT = "startPoint";
+    public static final String EXTRA_SHOULD_START = "shouldStart";
+    public static final String EXTRA_CUSTOM_DATA = "customData";
+    private static final int STOP_NOTIF_WHAT = 0;
+    private static final int START_NOTIF_WHAT = 1;
+    private static final int NOTIF_DELAY_MS = 300;
+
     /**
-     * Volume can be controlled at two different layers, one is at the "stream" level and one at the
-     * "device" level. <code>VolumeType</code> encapsulates these two types.
+     * Volume can be controlled at two different layers, one is at the "stream" level and one at
+     * the "device" level. <code>VolumeType</code> encapsulates these two types.
      */
     public static enum VolumeType {
         STREAM,
@@ -103,46 +136,95 @@ public class MediaCastManager extends BaseCastManager
     private int mIdleReason;
     private final String mDataNamespace;
     private Cast.MessageReceivedCallback mDataChannel;
-    protected final Set<IMediaCastConsumer> mMediaCastConsumers = new HashSet<IMediaCastConsumer>();
+    private final Set<IMediaCastConsumer> mVideoConsumers;
 
     /**
-     * Initializes the VideoCastManager for clients. Before clients can use VideoCastManager, they
+     * Initializes the MediaCastManager for clients. Before clients can use MediaCastManager, they
      * need to initialize it by calling this static method. Then clients can obtain an instance of
      * this singleton class by calling {@link getInstance()} or {@link getInstance(Context)}.
      * Failing to initialize this class before requesting an instance will result in a
      * {@link CastException} exception.
      *
-     * @see getInstance()
      * @param context
      * @param applicationId the unique ID for your application
      * @param targetActivity this points to the activity that should be invoked when user clicks on
-     *            the icon in the {@link MiniController}. Often this is the activity that hosts the
-     *            local player.
-     * @param dataNamespace if not <code>null</code>, a custom data channel with this namespace will
-     *            be created.
+     * the icon in the {@link MiniController}. Often this is the activity that hosts the local
+     * player.
+     * @param dataNamespace if not <code>null</code>, a custom data channel with this namespace
+     * will be created.
      * @return
+     * @see getInstance()
      */
-    public static MediaCastManager initialize(Context context,
-                                                           String applicationId,
-                                                           String dataNamespace) {
-        LOGD(TAG, "New instance of CastManager is created");
-        if (ConnectionResult.SUCCESS != GooglePlayServicesUtil.isGooglePlayServicesAvailable(context)) {
-            String msg = "Couldn't find the appropriate version of Goolge Play Services";
-            LOGE(TAG, msg);
-            Utils.saveBooleanToPreference(context, "pref_cast_enabled", false);
+    public static synchronized MediaCastManager initialize(Context context,
+            String applicationId, String dataNamespace) {
+        if (null == sInstance) {
+            LOGD(TAG, "New instance of MediaCastManager is created");
+            if (ConnectionResult.SUCCESS != GooglePlayServicesUtil
+                    .isGooglePlayServicesAvailable(context)) {
+                String msg = "Couldn't find the appropriate version of Goolge Play Services";
+                LOGE(TAG, msg);
+                Utils.saveBooleanToPreference(context, "pref_cast_enabled", false);
+            }
+            sInstance = new MediaCastManager(context, applicationId, dataNamespace);
+            mCastManager = sInstance;
         }
-        return new MediaCastManager(context, applicationId, dataNamespace);
+        return sInstance;
+    }
+
+    /**
+     * Returns the initialized instances of this class. If it is not initialized yet, a
+     * {@link CastException} will be thrown.
+     *
+     * @return
+     * @throws CastException
+     * @see initialize()
+     */
+    public static MediaCastManager getInstance() throws CastException {
+        if (null == sInstance) {
+            LOGE(TAG, "No MediaCastManager instance was built, you need to build one first");
+            throw new CastException();
+        }
+        return sInstance;
+    }
+
+    /**
+     * Returns the initialized instances of this class. If it is not initialized yet, a
+     * {@link CastException} will be thrown. The {@link Context} that is passed as the argument
+     * will be used to update the context for the <code>MediaCastManager</code> instance. The main
+     * purpose of updating context is to enable the library to provide {@link Context} related
+     * functionalities, e.g. it can create an error dialog if needed. This method is preferred over
+     * the similar one without a context argument.
+     *
+     * @param context the current Context
+     * @return
+     * @throws CastException
+     * @see {@link initialize()}, {@link setContext()}
+     */
+    public static MediaCastManager getInstance(Context context) throws CastException {
+        if (null == sInstance) {
+            LOGE(TAG, "No MediaCastManager instance was built, you need to build one first "
+                    + "(called from Context: " + context + ")");
+            throw new CastException();
+        }
+        LOGD(TAG, "Updated context to: " + context);
+        sInstance.mContext = context;
+        return sInstance;
     }
 
     private MediaCastManager(Context context, String applicationId, String dataNamespace) {
         super(context, applicationId);
-        LOGD(TAG, "CastManager is instantiated");
+        LOGD(TAG, "MediaCastManager is instantiated");
+        mVideoConsumers = Collections.synchronizedSet(new HashSet<IMediaCastConsumer>());
         mDataNamespace = dataNamespace;
+        if (null != mDataNamespace) {
+            Utils.saveStringToPreference(mContext, PREFS_KEY_CAST_CUSTOM_DATA_NAMESPACE,
+                    dataNamespace);
+        }
     }
 
-    /*************************************************************************/
-    /************** Utility Methods ******************************************/
-    /*************************************************************************/
+    /*============================================================================================*/
+    /*========== Utility Methods =================================================================*/
+    /*============================================================================================*/
 
     /**
      * Returns the active {@link RemoteMediaPlayer} instance. Since there are a number of media
@@ -153,6 +235,49 @@ public class MediaCastManager extends BaseCastManager
      */
     public final RemoteMediaPlayer getRemoteMediaPlayer() {
         return mRemoteMediaPlayer;
+    }
+
+    /**
+     * Determines if the media that is loaded remotely is a live stream or not.
+     *
+     * @return
+     * @throws TransientNetworkDisconnectionException
+     * @throws NoConnectionException
+     */
+    public final boolean isRemoteStreamLive() throws TransientNetworkDisconnectionException,
+            NoConnectionException {
+        checkConnectivity();
+        MediaInfo info = getRemoteMediaInformation();
+        return null != info && info.getStreamType() == MediaInfo.STREAM_TYPE_LIVE;
+    }
+
+    /**
+     * A helper method to determine if, given a player state and an idle reason (if the state is
+     * idle) will warrant having a UI for remote presentation of the remote content.
+     *
+     * @param state
+     * @param idleReason
+     * @return
+     * @throws TransientNetworkDisconnectionException
+     * @throws NoConnectionException
+     */
+    public boolean shouldRemoteUiBeVisible(int state, int idleReason)
+            throws TransientNetworkDisconnectionException,
+            NoConnectionException {
+        switch (state) {
+            case MediaStatus.PLAYER_STATE_PLAYING:
+            case MediaStatus.PLAYER_STATE_PAUSED:
+            case MediaStatus.PLAYER_STATE_BUFFERING:
+                return true;
+            case MediaStatus.PLAYER_STATE_IDLE:
+                if (!isRemoteStreamLive()) {
+                    return false;
+                }
+                return idleReason == MediaStatus.IDLE_REASON_CANCELED;
+            default:
+                break;
+        }
+        return false;
     }
 
     /*
@@ -179,8 +304,8 @@ public class MediaCastManager extends BaseCastManager
      *
      * @return
      * @throws NoConnectionException If no connectivity to the device exists
-     * @throws TransientNetworkDisconnectionException If framework is still trying to recover from a
-     *             possibly transient loss of network
+     * @throws TransientNetworkDisconnectionException If framework is still trying to recover from
+     * a possibly transient loss of network
      */
     public String getRemoteMediaUrl() throws TransientNetworkDisconnectionException,
             NoConnectionException {
@@ -206,7 +331,6 @@ public class MediaCastManager extends BaseCastManager
         checkConnectivity();
         return mState == MediaStatus.PLAYER_STATE_BUFFERING
                 || mState == MediaStatus.PLAYER_STATE_PLAYING;
-
     }
 
     /**
@@ -241,8 +365,8 @@ public class MediaCastManager extends BaseCastManager
      *
      * @return
      * @throws NoConnectionException If no connectivity to the device exists
-     * @throws TransientNetworkDisconnectionException If framework is still trying to recover from a
-     *             possibly transient loss of network
+     * @throws TransientNetworkDisconnectionException If framework is still trying to recover from
+     * a possibly transient loss of network
      */
     public MediaInfo getRemoteMediaInformation() throws TransientNetworkDisconnectionException,
             NoConnectionException {
@@ -256,8 +380,8 @@ public class MediaCastManager extends BaseCastManager
      * this returns -1. It internally detects what type of volume is used.
      *
      * @throws NoConnectionException If no connectivity to the device exists
-     * @throws TransientNetworkDisconnectionException If framework is still trying to recover from a
-     *             possibly transient loss of network
+     * @throws TransientNetworkDisconnectionException If framework is still trying to recover from
+     * a possibly transient loss of network
      */
     public double getVolume() throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
@@ -300,7 +424,8 @@ public class MediaCastManager extends BaseCastManager
                                         result.getStatus().getStatusCode());
                             }
                         }
-                    });
+                    }
+            );
         } else {
             try {
                 Cast.CastApi.setVolume(mApiClient, volume);
@@ -320,8 +445,8 @@ public class MediaCastManager extends BaseCastManager
      *
      * @param delta
      * @throws NoConnectionException If no connectivity to the device exists
-     * @throws TransientNetworkDisconnectionException If framework is still trying to recover from a
-     *             possibly transient loss of network
+     * @throws TransientNetworkDisconnectionException If framework is still trying to recover from
+     * a possibly transient loss of network
      * @throws CastException
      */
     public void incrementVolume(double delta) throws CastException,
@@ -387,21 +512,20 @@ public class MediaCastManager extends BaseCastManager
             try {
                 Cast.CastApi.setMute(mApiClient, mute);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGE(TAG, "Failed to set volume", e);
                 throw new CastException("Failed to set volume", e);
             }
         }
     }
 
     /**
-     * Returns the duration of the media that is loaded, in seconds. If there is no connection or if
-     * there is no channel established, this method returns -1.
+     * Returns the duration of the media that is loaded, in milliseconds.
      *
      * @return
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public double getMediaDuration() throws TransientNetworkDisconnectionException,
+    public long getMediaDuration() throws TransientNetworkDisconnectionException,
             NoConnectionException {
         checkConnectivity();
         checkRemoteMediaPlayerAvailable();
@@ -409,46 +533,38 @@ public class MediaCastManager extends BaseCastManager
     }
 
     /**
-     * Returns the current (approximate) position of the current media, in seconds. If there is no
-     * channel established, this method returns -1.
+     * Returns the current (approximate) position of the current media, in milliseconds.
      *
      * @return
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public double getCurrentMediaPosition() throws TransientNetworkDisconnectionException,
+    public long getCurrentMediaPosition() throws TransientNetworkDisconnectionException,
             NoConnectionException {
         checkConnectivity();
         checkRemoteMediaPlayerAvailable();
         return mRemoteMediaPlayer.getApproximateStreamPosition();
     }
 
-    /*
-     * This is called when ui visibility of the client has changed
-     */
-    @Override
-    protected void onUiVisibilityChanged(boolean visible) {
-        super.onUiVisibilityChanged(visible);
-
-    }
-
-    /************************************************************/
-    /*********** Implementing Cast.Listener *********************/
-    /************************************************************/
+    /*============================================================================================*/
+    /*========== Implementing Cast.Listener ======================================================*/
+    /*============================================================================================*/
 
     private void onApplicationDisconnected(int errorCode) {
         LOGD(TAG, "onApplicationDisconnected() reached with error code: " + errorCode);
-        for (IMediaCastConsumer consumer : mMediaCastConsumers) {
-            try {
-                consumer.onApplicationDisconnected(errorCode);
-            } catch (Exception e) {
-                LOGE(TAG, "onApplicationDisconnected(): Failed to inform " + consumer, e);
+        synchronized (mVideoConsumers) {
+            for (IMediaCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onApplicationDisconnected(errorCode);
+                } catch (Exception e) {
+                    LOGE(TAG, "onApplicationDisconnected(): Failed to inform " + consumer, e);
+                }
             }
         }
         if (null != mMediaRouter) {
             mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
         }
-        selectDevice(null);
+        onDeviceSelected(null);
     }
 
     private void onApplicationStatusChanged() {
@@ -460,12 +576,13 @@ public class MediaCastManager extends BaseCastManager
             appStatus = Cast.CastApi.getApplicationStatus(mApiClient);
             LOGD(TAG, "onApplicationStatusChanged() reached: "
                     + Cast.CastApi.getApplicationStatus(mApiClient));
-
-            for (IMediaCastConsumer consumer : mMediaCastConsumers) {
-                try {
-                    consumer.onApplicationStatusChanged(appStatus);
-                } catch (Exception e) {
-                    LOGE(TAG, "onApplicationStatusChanged(): Failed to inform " + consumer, e);
+            synchronized (mVideoConsumers) {
+                for (IMediaCastConsumer consumer : mVideoConsumers) {
+                    try {
+                        consumer.onApplicationStatusChanged(appStatus);
+                    } catch (Exception e) {
+                        LOGE(TAG, "onApplicationStatusChanged(): Failed to inform " + consumer, e);
+                    }
                 }
             }
         } catch (IllegalStateException e1) {
@@ -479,11 +596,13 @@ public class MediaCastManager extends BaseCastManager
         try {
             volume = getVolume();
             boolean isMute = isMute();
-            for (IMediaCastConsumer consumer : mMediaCastConsumers) {
-                try {
-                    consumer.onVolumeChanged(volume, isMute);
-                } catch (Exception e) {
-                    LOGE(TAG, "onVolumeChanged(): Failed to inform " + consumer, e);
+            synchronized (mVideoConsumers) {
+                for (IMediaCastConsumer consumer : mVideoConsumers) {
+                    try {
+                        consumer.onVolumeChanged(volume, isMute);
+                    } catch (Exception e) {
+                        LOGE(TAG, "onVolumeChanged(): Failed to inform " + consumer, e);
+                    }
                 }
             }
         } catch (Exception e1) {
@@ -518,8 +637,9 @@ public class MediaCastManager extends BaseCastManager
         try {
             attachDataChannel();
             attachMediaChannel();
+            mSessionId = sessionId;
             // saving device for future retrieval; we only save the last session info
-            Utils.saveStringToPreference(mContext, PREFS_KEY_SESSION_ID, sessionId);
+            Utils.saveStringToPreference(mContext, PREFS_KEY_SESSION_ID, mSessionId);
             mRemoteMediaPlayer.requestStatus(mApiClient).
                     setResultCallback(new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() {
 
@@ -532,11 +652,13 @@ public class MediaCastManager extends BaseCastManager
 
                         }
                     });
-            for (IMediaCastConsumer consumer : mMediaCastConsumers) {
-                try {
-                    consumer.onApplicationConnected(appMetadata, sessionId, wasLaunched);
-                } catch (Exception e) {
-                    LOGE(TAG, "onApplicationConnected(): Failed to inform " + consumer, e);
+            synchronized (mVideoConsumers) {
+                for (IMediaCastConsumer consumer : mVideoConsumers) {
+                    try {
+                        consumer.onApplicationConnected(appMetadata, mSessionId, wasLaunched);
+                    } catch (Exception e) {
+                        LOGE(TAG, "onApplicationConnected(): Failed to inform " + consumer, e);
+                    }
                 }
             }
         } catch (TransientNetworkDisconnectionException e) {
@@ -556,6 +678,7 @@ public class MediaCastManager extends BaseCastManager
     @Override
     public void onConnectivityRecovered() {
         reattachMediaChannel();
+        reattachDataChannel();
         super.onConnectivityRecovered();
     }
 
@@ -564,11 +687,13 @@ public class MediaCastManager extends BaseCastManager
      */
     @Override
     void onApplicationStopped() {
-        for (IMediaCastConsumer consumer : mMediaCastConsumers) {
-            try {
-                consumer.onApplicationStopped();
-            } catch (Exception e) {
-                LOGE(TAG, "onApplicationLaunched(): Failed to inform " + consumer, e);
+        synchronized (mVideoConsumers) {
+            for (IMediaCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onApplicationStopped();
+                } catch (Exception e) {
+                    LOGE(TAG, "onApplicationStopped(): Failed to inform " + consumer, e);
+                }
             }
         }
     }
@@ -579,11 +704,13 @@ public class MediaCastManager extends BaseCastManager
      */
     @Override
     public void onApplicationStopFailed(int errorCode) {
-        for (IMediaCastConsumer consumer : mMediaCastConsumers) {
-            try {
-                consumer.onApplicationStopFailed(errorCode);
-            } catch (Exception e) {
-                LOGE(TAG, "onApplicationLaunched(): Failed to inform " + consumer, e);
+        synchronized (mVideoConsumers) {
+            for (IMediaCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onApplicationStopFailed(errorCode);
+                } catch (Exception e) {
+                    LOGE(TAG, "onApplicationStopFailed(): Failed to inform " + consumer, e);
+                }
             }
         }
     }
@@ -597,27 +724,30 @@ public class MediaCastManager extends BaseCastManager
                 // found out that the app is not running so we need
                 // to disconnect
                 mReconnectionStatus = ReconnectionStatus.INACTIVE;
-                selectDevice(null);
+                onDeviceSelected(null);
             }
             return;
         } else {
-            for (IMediaCastConsumer consumer : mMediaCastConsumers) {
-                try {
-                    consumer.onApplicationConnectionFailed(errorCode);
-                } catch (Exception e) {
-                    LOGE(TAG, "onApplicationLaunchFailed(): Failed to inform " + consumer, e);
+            synchronized (mVideoConsumers) {
+                for (IMediaCastConsumer consumer : mVideoConsumers) {
+                    try {
+                        consumer.onApplicationConnectionFailed(errorCode);
+                    } catch (Exception e) {
+                        LOGE(TAG, "onApplicationLaunchFailed(): Failed to inform " + consumer, e);
+                    }
                 }
             }
-            selectDevice(null);
+
+            onDeviceSelected(null);
             if (null != mMediaRouter) {
                 mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
             }
         }
     }
 
-    /*************************************************************************/
-    /************** Playback methods *****************************************/
-    /*************************************************************************/
+    /*============================================================================================*/
+    /*========== Playback methods ================================================================*/
+    /*============================================================================================*/
 
     /**
      * Loads a media. For this to succeed, you need to have successfully launched the application.
@@ -625,29 +755,13 @@ public class MediaCastManager extends BaseCastManager
      * @param media
      * @param autoPlay If <code>true</code>, playback starts after load
      * @param position Where to start the playback (only used if autoPlay is <code>true</code>.
-     *            Units is milliseconds.
+     * Units is milliseconds.
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
     public void loadMedia(MediaInfo media, boolean autoPlay, int position)
             throws TransientNetworkDisconnectionException, NoConnectionException {
-        loadMedia(media, autoPlay, position, null);
-    }
-
-    /**
-     * Loads a media. For this to succeed, you need to have successfully launched the application.
-     *
-     * @param media
-     * @param autoPlay If <code>true</code>, playback starts after load
-     * @param position Where to start the playback (only used if autoPlay is <code>true</code>.
-     *            Units is milliseconds.
-     * @param customData Optional JSONObject data to be passed to the cast device
-     * @throws NoConnectionException
-     * @throws TransientNetworkDisconnectionException
-     */
-    public boolean loadMedia(MediaInfo media, boolean autoPlay, int position, JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException {
-        return loadMedia(media, autoPlay, position, customData,
+        loadMedia(media, autoPlay, position, null,
                 new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() {
 
                     @Override
@@ -660,21 +774,32 @@ public class MediaCastManager extends BaseCastManager
                 });
     }
 
-    public boolean loadMedia(MediaInfo media, boolean autoPlay, int position, JSONObject customData,
-                             ResultCallback<MediaChannelResult> callback)
+    /**
+     * Loads a media. For this to succeed, you need to have successfully launched the application.
+     *
+     * @param media
+     * @param autoPlay If <code>true</code>, playback starts after load
+     * @param position Where to start the playback (only used if autoPlay is <code>true</code>).
+     * Units is milliseconds.
+     * @param customData Optional {@link JSONObject} data to be passed to the cast device
+     * @throws NoConnectionException
+     * @throws TransientNetworkDisconnectionException
+     */
+    public void loadMedia(MediaInfo media, boolean autoPlay, int position, JSONObject customData,
+                          ResultCallback<RemoteMediaPlayer.MediaChannelResult> callback)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         LOGD(TAG, "loadMedia: " + media);
         checkConnectivity();
         if (media == null) {
-            return false;
+            return;
         }
         if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to load media with no active media session");
+            LOGE(TAG, "Trying to load a video with no active media session");
             throw new NoConnectionException();
         }
 
-        mRemoteMediaPlayer.load(mApiClient, media, autoPlay, position, customData).setResultCallback(callback);
-        return true;
+        mRemoteMediaPlayer.load(mApiClient, media, autoPlay, position, customData)
+                .setResultCallback(callback);
     }
 
     /**
@@ -689,7 +814,7 @@ public class MediaCastManager extends BaseCastManager
         checkConnectivity();
         LOGD(TAG, "attempting to play media at position " + position + " seconds");
         if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to play media with no active media session");
+            LOGE(TAG, "Trying to play a video with no active media session");
             throw new NoConnectionException();
         }
         seekAndPlay(position);
@@ -698,25 +823,29 @@ public class MediaCastManager extends BaseCastManager
     /**
      * Resumes the playback from where it was left (can be the beginning).
      *
-     * @param customData Optional JSONObject data to be passed to the cast device
-     * @throws CastException
+     * @param customData Optional {@link JSONObject} data to be passed to the cast device
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public void play(JSONObject customData) throws CastException,
+    public void play(JSONObject customData) throws
             TransientNetworkDisconnectionException, NoConnectionException {
-        LOGD(TAG, "play()");
+        LOGD(TAG, "play(customData)");
         checkConnectivity();
-        try {
-            if (mRemoteMediaPlayer == null) {
-                LOGE(TAG, "Trying to play media with no active media session");
-                throw new NoConnectionException();
-            }
-            mRemoteMediaPlayer.play(mApiClient);
-        } catch (IOException e) {
-            LOGE(TAG, "Failed to play media", e);
-            throw new CastException(mContext.getString(R.string.failed_to_play), e);
+        if (mRemoteMediaPlayer == null) {
+            LOGE(TAG, "Trying to play a video with no active media session");
+            throw new NoConnectionException();
         }
+        mRemoteMediaPlayer.play(mApiClient, customData)
+                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+
+                    @Override
+                    public void onResult(MediaChannelResult result) {
+                        if (!result.getStatus().isSuccess()) {
+                            onFailed(R.string.failed_to_play, result.getStatus().getStatusCode());
+                        }
+                    }
+
+                });
     }
 
     /**
@@ -729,6 +858,47 @@ public class MediaCastManager extends BaseCastManager
     public void play() throws CastException, TransientNetworkDisconnectionException,
             NoConnectionException {
         play(null);
+    }
+
+    /**
+     * Stops the playback of media/stream
+     *
+     * @param customData Optional {@link JSONObject}
+     * @throws TransientNetworkDisconnectionException
+     * @throws NoConnectionException
+     */
+    public void stop(JSONObject customData) throws
+            TransientNetworkDisconnectionException, NoConnectionException {
+        LOGD(TAG, "stop()");
+        checkConnectivity();
+        if (mRemoteMediaPlayer == null) {
+            LOGE(TAG, "Trying to stop a stream with no active media session");
+            throw new NoConnectionException();
+        }
+        mRemoteMediaPlayer.stop(mApiClient, customData).setResultCallback(
+                new ResultCallback<MediaChannelResult>() {
+
+                    @Override
+                    public void onResult(MediaChannelResult result) {
+                        if (!result.getStatus().isSuccess()) {
+                            onFailed(R.string.failed_to_stop, result.getStatus().getStatusCode());
+                        }
+                    }
+
+                }
+        );
+    }
+
+    /**
+     * Stops the playback of media/stream
+     *
+     * @throws CastException
+     * @throws TransientNetworkDisconnectionException
+     * @throws NoConnectionException
+     */
+    public void stop() throws CastException,
+            TransientNetworkDisconnectionException, NoConnectionException {
+        stop(null);
     }
 
     /**
@@ -746,48 +916,29 @@ public class MediaCastManager extends BaseCastManager
     /**
      * Pauses the playback.
      *
-     * @param customData Optional JSONObject data to be passed to the cast device
-     * @throws CastException
+     * @param customData Optional {@link JSONObject} data to be passed to the cast device
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public void pause(JSONObject customData) throws CastException,
+    public void pause(JSONObject customData) throws
             TransientNetworkDisconnectionException, NoConnectionException {
         LOGD(TAG, "attempting to pause media");
         checkConnectivity();
         if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to pause media with no active media session");
+            LOGE(TAG, "Trying to pause a video with no active media session");
             throw new NoConnectionException();
         }
-        try {
-            mRemoteMediaPlayer.pause(mApiClient, customData);
-        } catch (IOException e) {
-            LOGE(TAG, "Failed to pause media ", e);
-            throw new CastException(mContext, R.string.failed_to_pause, e);
-        } catch (IllegalStateException e) {
-            LOGE(TAG, "Failed to pause media " + e.getMessage());
-        }
-    }
+        mRemoteMediaPlayer.pause(mApiClient, customData)
+                .setResultCallback(new ResultCallback<MediaChannelResult>() {
 
-    /**
-     * Stops remote playback
-     */
-    public void stop() throws CastException, TransientNetworkDisconnectionException, NoConnectionException {
-        LOGD(TAG, "attempting to stop media");
-        checkConnectivity();
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to stop media without an active media session");
-            throw new NoConnectionException();
-        }
-        try {
-            mRemoteMediaPlayer.stop(mApiClient);
-        } catch (IOException e) {
-            LOGE(TAG, "Failed to stop media ", e);
-            throw new CastException(mContext, R.string.failed_to_stop, e);
-        } catch (IllegalStateException e) {
-            LOGE(TAG, "Failed to stop media ", e);
-            throw new CastException(mContext, R.string.failed_to_stop, e);
-        }
+                    @Override
+                    public void onResult(MediaChannelResult result) {
+                        if (!result.getStatus().isSuccess()) {
+                            onFailed(R.string.failed_to_pause, result.getStatus().getStatusCode());
+                        }
+                    }
+
+                });
     }
 
     /**
@@ -797,14 +948,13 @@ public class MediaCastManager extends BaseCastManager
      * @param position in milliseconds
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
-     * @throws CastException
      */
     public void seek(int position) throws TransientNetworkDisconnectionException,
             NoConnectionException {
         LOGD(TAG, "attempting to seek media");
         checkConnectivity();
         if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to seek media with no active media session");
+            LOGE(TAG, "Trying to seek a video with no active media session");
             throw new NoConnectionException();
         }
         mRemoteMediaPlayer.seek(mApiClient,
@@ -835,7 +985,7 @@ public class MediaCastManager extends BaseCastManager
         LOGD(TAG, "attempting to seek media");
         checkConnectivity();
         if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to seekAndPlay media with no active media session");
+            LOGE(TAG, "Trying to seekAndPlay a video with no active media session");
             throw new NoConnectionException();
         }
         ResultCallback<MediaChannelResult> resultCallback =
@@ -892,7 +1042,8 @@ public class MediaCastManager extends BaseCastManager
                             LOGD(TAG, "RemoteMediaPlayer::onStatusUpdated() is reached");
                             MediaCastManager.this.onRemoteMediaPlayerStatusUpdated();
                         }
-                    });
+                    }
+            );
 
             mRemoteMediaPlayer.setOnMetadataUpdatedListener(
                     new RemoteMediaPlayer.OnMetadataUpdatedListener() {
@@ -902,7 +1053,7 @@ public class MediaCastManager extends BaseCastManager
                             MediaCastManager.this.onRemoteMediaPlayerMetadataUpdated();
                         }
                     }
-                    );
+            );
 
         }
         try {
@@ -935,7 +1086,7 @@ public class MediaCastManager extends BaseCastManager
                 try {
                     Cast.CastApi.removeMessageReceivedCallbacks(mApiClient,
                             mRemoteMediaPlayer.getNamespace());
-                } catch (IOException e) {
+                } catch (Exception e) {
                     LOGE(TAG, "Failed to detach media channel", e);
                 }
             }
@@ -947,13 +1098,13 @@ public class MediaCastManager extends BaseCastManager
      * Returns the playback status of the remote device.
      *
      * @return Returns one of the values
-     *         <ul>
-     *         <li> <code>MediaStatus.PLAYER_STATE_PLAYING</code>
-     *         <li> <code>MediaStatus.PLAYER_STATE_PAUSED</code>
-     *         <li> <code>MediaStatus.PLAYER_STATE_BUFFERING</code>
-     *         <li> <code>MediaStatus.PLAYER_STATE_IDLE</code>
-     *         <li> <code>MediaStatus.PLAYER_STATE_UNKNOWN</code>
-     *         </ul>
+     * <ul>
+     * <li> <code>MediaStatus.PLAYER_STATE_PLAYING</code>
+     * <li> <code>MediaStatus.PLAYER_STATE_PAUSED</code>
+     * <li> <code>MediaStatus.PLAYER_STATE_BUFFERING</code>
+     * <li> <code>MediaStatus.PLAYER_STATE_IDLE</code>
+     * <li> <code>MediaStatus.PLAYER_STATE_UNKNOWN</code>
+     * </ul>
      */
     public int getPlaybackStatus() {
         return mState;
@@ -970,16 +1121,15 @@ public class MediaCastManager extends BaseCastManager
         return mIdleReason;
     }
 
-    /*************************************************************************/
-    /************** DataChannel callbacks and methods ************************/
-    /**
-     * @throws NoConnectionException
-     * @throws TransientNetworkDisconnectionException
-     ***********************************************************************/
+    /*============================================================================================*/
+    /*========== DataChannel callbacks and methods ===============================================*/
+    /*============================================================================================*/
 
     /*
      * If a data namespace was provided when initializing this class, we set things up for a data
      * channel
+     * @throws NoConnectionException
+     * @throws TransientNetworkDisconnectionException
      */
     private void attachDataChannel() throws TransientNetworkDisconnectionException,
             NoConnectionException {
@@ -994,45 +1144,63 @@ public class MediaCastManager extends BaseCastManager
 
             @Override
             public void onMessageReceived(CastDevice castDevice, String namespace, String message) {
-                for (IMediaCastConsumer consumer : mMediaCastConsumers) {
-                    try {
-                        consumer.onDataMessageReceived(message);
-                    } catch (Exception e) {
-                        LOGE(TAG, "onMessageReceived(): Failed to inform " + consumer, e);
+                synchronized (mVideoConsumers) {
+                    for (IMediaCastConsumer consumer : mVideoConsumers) {
+                        try {
+                            consumer.onDataMessageReceived(message);
+                        } catch (Exception e) {
+                            LOGE(TAG, "onMessageReceived(): Failed to inform " + consumer, e);
+                        }
                     }
                 }
             }
         };
         try {
             Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mDataNamespace, mDataChannel);
-        } catch (Exception e) {
-            LOGE(TAG, "Failed to add data channel", e);
+        } catch (IOException e) {
+            LOGE(TAG, "Failed to setup data channel", e);
+        } catch (IllegalStateException e) {
+            LOGE(TAG, "Failed to setup data channel", e);
+        }
+    }
+
+    private void reattachDataChannel() {
+        if (!TextUtils.isEmpty(mDataNamespace) && null != mDataChannel && null != mApiClient) {
+            try {
+                Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mDataNamespace, mDataChannel);
+            } catch (IOException e) {
+                LOGE(TAG, "Failed to setup data channel", e);
+            } catch (IllegalStateException e) {
+                LOGE(TAG, "Failed to setup data channel", e);
+            }
         }
     }
 
     private void onMessageSendFailed(int errorCode) {
-        for (IMediaCastConsumer consumer : mMediaCastConsumers) {
-            try {
-                consumer.onDataMessageSendFailed(errorCode);
-            } catch (Exception e) {
-                LOGE(TAG, "onMessageSendFailed(): Failed to inform " + consumer, e);
+        synchronized (mVideoConsumers) {
+            for (IMediaCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onDataMessageSendFailed(errorCode);
+                } catch (Exception e) {
+                    LOGE(TAG, "onMessageSendFailed(): Failed to inform " + consumer, e);
+                }
             }
         }
     }
 
     /**
-     * Sends the <code>message</code> on the data channel for the namespace that was provided during
-     * the initialization of this class. If <code>messageId &gt; 0</code>, then it has to be a
-     * unique identifier for the message; this id will be returned if an error occurs. If
+     * Sends the <code>message</code> on the data channel for the namespace that was provided
+     * during the initialization of this class. If <code>messageId &gt; 0</code>, then it has to be
+     * a unique identifier for the message; this id will be returned if an error occurs. If
      * <code>messageId == 0</code>, then an auto-generated unique identifier will be created and
      * returned for the message.
      *
      * @param message
      * @return
-     * @throws IllegalStateException If the namesapace is empty or null
+     * @throws IllegalStateException If the namespace is empty or null
      * @throws NoConnectionException If no connectivity to the device exists
-     * @throws TransientNetworkDisconnectionException If framework is still trying to recover from a
-     *             possibly transient loss of network
+     * @throws TransientNetworkDisconnectionException If framework is still trying to recover from
+     * a possibly transient loss of network
      */
     public void sendDataMessage(String message) throws TransientNetworkDisconnectionException,
             NoConnectionException {
@@ -1053,22 +1221,22 @@ public class MediaCastManager extends BaseCastManager
     }
 
     /**
-     * Remove the custom data channel, if any. It returns <code>true</code> if it succeeds otherwise
-     * if it encounters an error or if no connection exists or if no custom data channel exists,
-     * then it returns <code>false</code>
+     * Remove the custom data channel, if any. It returns <code>true</code> if it succeeds
+     * otherwise if it encounters an error or if no connection exists or if no custom data channel
+     * exists, then it returns <code>false</code>
      *
      * @return
-     * @throws NoConnectionException
-     * @throws TransientNetworkDisconnectionException
      */
-    public boolean removeDataChannel() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
-        checkConnectivity();
+    public boolean removeDataChannel() {
         if (TextUtils.isEmpty(mDataNamespace)) {
             return false;
         }
         try {
-            Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, mDataNamespace);
+            if (null != Cast.CastApi && null != mApiClient) {
+                Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, mDataNamespace);
+            }
+            mDataChannel = null;
+            Utils.saveStringToPreference(mContext, PREFS_KEY_CAST_CUSTOM_DATA_NAMESPACE, null);
             return true;
         } catch (Exception e) {
             LOGE(TAG, "Failed to remove namespace: " + mDataNamespace, e);
@@ -1077,9 +1245,9 @@ public class MediaCastManager extends BaseCastManager
 
     }
 
-    /*************************************************************************/
-    /************** MediaChannel callbacks ***********************************/
-    /*************************************************************************/
+    /*============================================================================================*/
+    /*========== MediaChannel callbacks ==========================================================*/
+    /*============================================================================================*/
 
     /*
      * This is called by onStatusUpdated() of the RemoteMediaPlayer
@@ -1093,44 +1261,26 @@ public class MediaCastManager extends BaseCastManager
         }
         mState = mRemoteMediaPlayer.getMediaStatus().getPlayerState();
         mIdleReason = mRemoteMediaPlayer.getMediaStatus().getIdleReason();
-//        try {
-//            double volume = getVolume();
-//            boolean isMute = isMute();
-            boolean idle = false;
-            if (mState == MediaStatus.PLAYER_STATE_PLAYING) {
-                LOGD(TAG,"status: playing");
-            } else if (mState == MediaStatus.PLAYER_STATE_PAUSED) {
-                LOGD(TAG,"status: paused");
-            } else if (mState == MediaStatus.PLAYER_STATE_IDLE) {
-                idle = true;
-                if (mIdleReason == MediaStatus.IDLE_REASON_FINISHED) {
-                    //Anything?
-                } else if (mIdleReason == MediaStatus.IDLE_REASON_ERROR) {
-                    // something bad happened on the cast device
-                    LOGD(TAG, "Player on the receiver has thrown an error");
-                    //TODO not sure we should do this, i still havent encountered it yet though
-                    onFailed(R.string.failed_receiver_player_error, NO_STATUS_CODE);
-                }
-            } else if (mState == MediaStatus.PLAYER_STATE_BUFFERING) {
-                LOGD(TAG,"status: buffering");
-            } else {
-                LOGD(TAG,"status: unknown");
-                idle = true;
-            }
-            for (IMediaCastConsumer consumer : mMediaCastConsumers) {
-                try {
-                    consumer.onRemoteMediaPlayerStatusUpdated();
-//                    consumer.onVolumeChanged(volume, isMute); //Dont know why they were calling this every damn time
-                } catch (Exception e) {
-                    LOGE(TAG, "onRemoteMediaplayerStatusUpdated(): Failed to inform "
-                            + consumer, e);
+
+        try {
+            double volume = getVolume();
+            boolean isMute = isMute();
+            synchronized (mVideoConsumers) {
+                for (IMediaCastConsumer consumer : mVideoConsumers) {
+                    try {
+                        consumer.onRemoteMediaPlayerStatusUpdated();
+                        consumer.onVolumeChanged(volume, isMute);
+                    } catch (Exception e) {
+                        LOGE(TAG, "onRemoteMediaPlayerStatusUpdated(): Failed to inform "
+                                + consumer, e);
+                    }
                 }
             }
-//        } catch (TransientNetworkDisconnectionException e) {
-//            LOGE(TAG, "Failed to get volume state due to network issues", e);
-//        } catch (NoConnectionException e) {
-//            LOGE(TAG, "Failed to get volume state due to network issues", e);
-//        }
+        } catch (TransientNetworkDisconnectionException e) {
+            LOGE(TAG, "Failed to get volume state due to network issues", e);
+        } catch (NoConnectionException e) {
+            LOGE(TAG, "Failed to get volume state due to network issues", e);
+        }
 
     }
 
@@ -1139,82 +1289,90 @@ public class MediaCastManager extends BaseCastManager
      */
     public void onRemoteMediaPlayerMetadataUpdated() {
         LOGD(TAG, "onRemoteMediaPlayerMetadataUpdated() reached");
-        for (IMediaCastConsumer consumer : mMediaCastConsumers) {
-            try {
-                consumer.onRemoteMediaPlayerMetadataUpdated();
-            } catch (Exception e) {
-                LOGE(TAG, "onRemoteMediaPlayerMetadataUpdated(): Failed to inform " + consumer, e);
+        synchronized (mVideoConsumers) {
+            for (IMediaCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onRemoteMediaPlayerMetadataUpdated();
+                } catch (Exception e) {
+                    LOGE(TAG, "onRemoteMediaPlayerMetadataUpdated(): Failed to inform " + consumer,
+                            e);
+                }
             }
         }
     }
 
-    /*************************************************************/
-    /***** Registering ICastConsumer listeners **************/
-    /*************************************************************/
+    /*============================================================================================*/
+    /*========== Registering IMediaCastConsumer listeners ========================================*/
+    /*============================================================================================*/
+
     /**
-     * Registers an {@link org.opensilk.cast.callbacks.IMediaCastConsumer} interface with this class. Registered listeners will
+     * Registers an {@link IMediaCastConsumer} interface with this class. Registered listeners will
      * be notified of changes to a variety of lifecycle and media status changes through the
      * callbacks that the interface provides.
      *
-     * @see org.opensilk.cast.callbacks.IMediaCastConsumerImpl
      * @param listener
+     * @see VideoCastConsumerImpl
      */
     public synchronized void addCastConsumer(IMediaCastConsumer listener) {
         if (null != listener) {
             super.addBaseCastConsumer(listener);
-            mMediaCastConsumers.add(listener);
+            synchronized (mVideoConsumers) {
+                mVideoConsumers.add(listener);
+            }
             LOGD(TAG, "Successfully added the new CastConsumer listener " + listener);
         }
     }
 
     /**
-     * Unregisters an {@link org.opensilk.cast.callbacks.IMediaCastConsumer}.
+     * Unregisters an {@link IMediaCastConsumer}.
      *
      * @param listener
      */
     public synchronized void removeCastConsumer(IMediaCastConsumer listener) {
         if (null != listener) {
             super.removeBaseCastConsumer(listener);
-            mMediaCastConsumers.remove(listener);
+            synchronized (mVideoConsumers) {
+                mVideoConsumers.remove(listener);
+            }
         }
     }
 
-    /*************************************************************/
-    /***** Implementing abstract methods of BaseCastManager ******/
-    /*************************************************************/
+    public synchronized void nukeConsumers() {
+        synchronized (mVideoConsumers) {
+            Iterator<IMediaCastConsumer> ii = mVideoConsumers.iterator();
+            while (ii.hasNext()) {
+                IMediaCastConsumer c = ii.next();
+                super.removeBaseCastConsumer(c);
+                ii.remove();
+            }
+        }
+    }
+
+    /*============================================================================================*/
+    /*========== Implementing abstract methods of BaseCastManage =================================*/
+    /*============================================================================================*/
 
     @Override
     void onDeviceUnselected() {
-        try {
-            detachMediaChannel();
-            removeDataChannel();
-        } catch (TransientNetworkDisconnectionException e) {
-            LOGD(TAG, "Failed to clean up on onDeviceUnselected()", e);
-        } catch (NoConnectionException e) {
-            LOGD(TAG, "Failed to clean up on onDeviceUnselected()", e);
-        }
+        detachMediaChannel();
+        removeDataChannel();
+        mState = MediaStatus.PLAYER_STATE_IDLE;
     }
 
     @Override
     Builder getCastOptionBuilder(CastDevice device) {
         Builder builder = Cast.CastOptions.builder(mSelectedCastDevice, new CastListener());
         if (isFeatureEnabled(FEATURE_DEBUGGING)) {
-            builder.setDebuggingEnabled();
+            builder.setVerboseLoggingEnabled(true);
         }
         return builder;
     }
 
     @Override
-    public void onConnectionFailed(ConnectionResult result) {
-        super.onConnectionFailed(result);
-
-    }
-
-    @Override
     public void onDisconnected() {
         super.onDisconnected();
+        mState = MediaStatus.PLAYER_STATE_IDLE;
     }
-
 
     class CastListener extends Cast.Listener {
 

@@ -48,8 +48,9 @@ public class CastServiceConsumer implements IMediaCastConsumer {
     }
 
     @Override
-    public void onApplicationConnectionFailed(int errorCode) {
+    public boolean onApplicationConnectionFailed(int errorCode) {
         sendMessage(CAST_APPLICATION_CONNECTION_FAILED, errorCode);
+        return false;
     }
 
     @Override
@@ -126,13 +127,19 @@ public class CastServiceConsumer implements IMediaCastConsumer {
     }
 
     @Override
-    public void onConnectionFailed(ConnectionResult result) {
+    public boolean onConnectionFailed(ConnectionResult result) {
         sendMessage(CAST_CONNECTION_FAILED, result.getErrorCode());
+        return false;
     }
 
     @Override
     public void onCastDeviceDetected(MediaRouter.RouteInfo info) {
         sendMessage(CAST_DEVICE_DETECTED);
+    }
+
+    @Override
+    public void onCastAvailabilityChanged(boolean castPresent) {
+        sendMessage(CAST_AVAILABILITY_CHANGED, castPresent ? 1 : 0);
     }
 
     @Override

@@ -60,4 +60,6 @@ public class CastMessage {
     public static final int CAST_DATA_MESSAGE_RECEIVED              = 0x00000012;
     /** arg1 resource id of error string, arg2 error code */
     public static final int CAST_FAILED                             = 0x00000013;
+    /** arg1 1 for true 0 for false */
+    public static final int CAST_AVAILABILITY_CHANGED               = 0x00000014;
 }

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-apply plugin: 'android-library'
+apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 19
-    buildToolsVersion "19.0.3"
+    buildToolsVersion "19.1.0"
 
     defaultConfig {
         minSdkVersion 9
@@ -40,6 +40,6 @@ android {
 
 dependencies {
     compile 'com.android.support:mediarouter-v7:19.+'
-    compile 'com.google.android.gms:play-services:4.2.+'
+    compile 'com.google.android.gms:play-services:5.0.+'
     //compile fileTree(dir: 'libs', include: ['*.jar'])
 }
