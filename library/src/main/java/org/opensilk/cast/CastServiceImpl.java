@@ -22,8 +22,8 @@ import android.os.RemoteException;
 
 import java.lang.ref.WeakReference;
 
-import static org.opensilk.cast.util.LogUtils.makeLogTag;
 import static org.opensilk.cast.util.LogUtils.LOGD;
+import static org.opensilk.cast.util.LogUtils.makeLogTag;
 
 /**
  * Implementation for remote processes to access CastService

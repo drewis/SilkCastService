@@ -16,9 +16,9 @@
 
 package org.opensilk.cast.callbacks;
 
-import com.google.android.gms.common.ConnectionResult;
-
 import android.support.v7.media.MediaRouter.RouteInfo;
+
+import com.google.android.gms.common.ConnectionResult;
 
 /**
  * A no-op implementation of the {@link IBaseCastConsumer}

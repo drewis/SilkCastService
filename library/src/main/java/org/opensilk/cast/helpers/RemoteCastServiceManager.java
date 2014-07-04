@@ -22,14 +22,12 @@ import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
-import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 
-import org.opensilk.cast.CastServiceBinder;
-import org.opensilk.cast.SilkCastService;
 import org.opensilk.cast.CastServiceImpl;
 import org.opensilk.cast.ICastService;
+import org.opensilk.cast.SilkCastService;
 
 import java.util.WeakHashMap;
 

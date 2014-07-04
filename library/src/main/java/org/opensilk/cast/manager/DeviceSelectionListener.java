@@ -16,9 +16,9 @@
 
 package org.opensilk.cast.manager;
 
-import com.google.android.gms.cast.CastDevice;
-
 import android.support.v7.media.MediaRouter.RouteInfo;
+
+import com.google.android.gms.cast.CastDevice;
 
 /**
  * An interface that will be used to inform clients that a {@link CastDevice} is discovered by the

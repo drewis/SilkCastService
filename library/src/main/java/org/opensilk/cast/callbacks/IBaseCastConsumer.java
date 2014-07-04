@@ -16,10 +16,11 @@
 
 package org.opensilk.cast.callbacks;
 
-import com.google.android.gms.common.ConnectionResult;
-import org.opensilk.cast.exceptions.OnFailedListener;
-
 import android.support.v7.media.MediaRouter.RouteInfo;
+
+import com.google.android.gms.common.ConnectionResult;
+
+import org.opensilk.cast.exceptions.OnFailedListener;
 
 public interface IBaseCastConsumer extends OnFailedListener {
 

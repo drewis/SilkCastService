@@ -16,27 +16,16 @@
 
 package org.opensilk.cast.manager;
 
-import static org.opensilk.cast.util.LogUtils.LOGD;
-import static org.opensilk.cast.util.LogUtils.LOGE;
-
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.media.RemoteControlClient;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.v4.view.MenuItemCompat;
-import android.support.v7.app.MediaRouteActionProvider;
-import android.support.v7.app.MediaRouteButton;
-import android.support.v7.app.MediaRouteDialogFactory;
 import android.support.v7.media.MediaRouteSelector;
 import android.support.v7.media.MediaRouter;
 import android.support.v7.media.MediaRouter.RouteInfo;
-import android.view.Menu;
-import android.view.MenuItem;
 
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
@@ -49,7 +38,7 @@ import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
-import org.opensilk.cast.R;
+
 import org.opensilk.cast.callbacks.IBaseCastConsumer;
 import org.opensilk.cast.exceptions.CastException;
 import org.opensilk.cast.exceptions.NoConnectionException;
@@ -63,6 +52,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static org.opensilk.cast.util.LogUtils.LOGD;
+import static org.opensilk.cast.util.LogUtils.LOGE;
 
 /**
  * An abstract class that manages connectivity to a cast device. Subclasses are expected to extend

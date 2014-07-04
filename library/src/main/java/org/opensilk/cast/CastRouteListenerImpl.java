@@ -24,11 +24,8 @@ import android.support.v7.media.MediaRouter;
 
 import com.google.android.gms.cast.CastDevice;
 
-import org.opensilk.cast.exceptions.NoConnectionException;
-import org.opensilk.cast.exceptions.TransientNetworkDisconnectionException;
 import org.opensilk.cast.util.LogUtils;
 
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.List;
 

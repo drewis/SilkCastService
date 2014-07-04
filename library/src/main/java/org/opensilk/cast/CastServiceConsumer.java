@@ -30,7 +30,26 @@ import org.opensilk.cast.callbacks.IMediaCastConsumer;
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
 
-import static org.opensilk.cast.CastMessage.*;
+import static org.opensilk.cast.CastMessage.CAST_APPLICATION_CONNECTED;
+import static org.opensilk.cast.CastMessage.CAST_APPLICATION_CONNECTION_FAILED;
+import static org.opensilk.cast.CastMessage.CAST_APPLICATION_DISCONNECTED;
+import static org.opensilk.cast.CastMessage.CAST_APPLICATION_STATUS_CHANGED;
+import static org.opensilk.cast.CastMessage.CAST_APPLICATION_STOPPED;
+import static org.opensilk.cast.CastMessage.CAST_APPLICATION_STOP_FAILED;
+import static org.opensilk.cast.CastMessage.CAST_AVAILABILITY_CHANGED;
+import static org.opensilk.cast.CastMessage.CAST_CONNECTED;
+import static org.opensilk.cast.CastMessage.CAST_CONNECTION_FAILED;
+import static org.opensilk.cast.CastMessage.CAST_CONNECTION_SUSPENDED;
+import static org.opensilk.cast.CastMessage.CAST_CONNECTIVITY_RECOVERED;
+import static org.opensilk.cast.CastMessage.CAST_DATA_MESSAGE_RECEIVED;
+import static org.opensilk.cast.CastMessage.CAST_DATA_MESSAGE_SEND_FAILED;
+import static org.opensilk.cast.CastMessage.CAST_DEVICE_DETECTED;
+import static org.opensilk.cast.CastMessage.CAST_DISCONNECTED;
+import static org.opensilk.cast.CastMessage.CAST_FAILED;
+import static org.opensilk.cast.CastMessage.CAST_REMOTE_MEDIA_PLAYER_META_UPDATED;
+import static org.opensilk.cast.CastMessage.CAST_REMOTE_MEDIA_PLAYER_STATUS_UPDATED;
+import static org.opensilk.cast.CastMessage.CAST_REMOVED_NAMESPACE;
+import static org.opensilk.cast.CastMessage.CAST_VOLUME_CHANGED;
 
 /**
  * Created by drew on 3/15/14.

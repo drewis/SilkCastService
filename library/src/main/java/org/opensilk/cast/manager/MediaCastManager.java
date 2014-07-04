@@ -16,28 +16,9 @@
 
 package org.opensilk.cast.manager;
 
-import static org.opensilk.cast.util.LogUtils.LOGD;
-import static org.opensilk.cast.util.LogUtils.LOGE;
-
-import android.annotation.SuppressLint;
-import android.app.PendingIntent;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
-import android.content.res.Resources.NotFoundException;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.AudioManager;
-import android.media.MediaMetadataRetriever;
-import android.media.RemoteControlClient;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
-import android.support.v7.app.MediaRouteDialogFactory;
 import android.support.v7.media.MediaRouter.RouteInfo;
 import android.text.TextUtils;
-import android.view.View;
 
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
@@ -46,7 +27,6 @@ import com.google.android.gms.cast.Cast.MessageReceivedCallback;
 import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.CastStatusCodes;
 import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaStatus;
 import com.google.android.gms.cast.RemoteMediaPlayer;
 import com.google.android.gms.cast.RemoteMediaPlayer.MediaChannelResult;
@@ -54,10 +34,10 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
-import com.google.android.gms.common.images.WebImage;
+
+import org.json.JSONObject;
 import org.opensilk.cast.R;
 import org.opensilk.cast.callbacks.IMediaCastConsumer;
-import org.opensilk.cast.callbacks.MediaCastConsumerImpl;
 import org.opensilk.cast.exceptions.CastException;
 import org.opensilk.cast.exceptions.NoConnectionException;
 import org.opensilk.cast.exceptions.OnFailedListener;
@@ -65,16 +45,15 @@ import org.opensilk.cast.exceptions.TransientNetworkDisconnectionException;
 import org.opensilk.cast.util.LogUtils;
 import org.opensilk.cast.util.Utils;
 
-import org.json.JSONObject;
-
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
+import static org.opensilk.cast.util.LogUtils.LOGD;
+import static org.opensilk.cast.util.LogUtils.LOGE;
 
 /**
  * A concrete subclass of {@link BaseCastManager} that is suitable for casting video contents (it

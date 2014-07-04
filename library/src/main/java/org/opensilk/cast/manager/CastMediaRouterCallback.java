@@ -16,16 +16,17 @@
 
 package org.opensilk.cast.manager;
 
-import static org.opensilk.cast.util.LogUtils.LOGD;
-
 import android.content.Context;
 import android.support.v7.media.MediaRouter;
 import android.support.v7.media.MediaRouter.RouteInfo;
 
 import com.google.android.gms.cast.CastDevice;
+
 import org.opensilk.cast.manager.BaseCastManager.ReconnectionStatus;
 import org.opensilk.cast.util.LogUtils;
 import org.opensilk.cast.util.Utils;
+
+import static org.opensilk.cast.util.LogUtils.LOGD;
 
 /**
  * Provides a handy implementation of {@link MediaRouter.Callback}. When a {@link RouteInfo} is
