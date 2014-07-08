@@ -89,15 +89,6 @@ import static org.opensilk.cast.util.LogUtils.LOGE;
 public class MediaCastManager extends BaseCastManager
         implements OnFailedListener {
 
-    public static final String EXTRA_HAS_AUTH = "hasAuth";
-    public static final String EXTRA_MEDIA = "media";
-    public static final String EXTRA_START_POINT = "startPoint";
-    public static final String EXTRA_SHOULD_START = "shouldStart";
-    public static final String EXTRA_CUSTOM_DATA = "customData";
-    private static final int STOP_NOTIF_WHAT = 0;
-    private static final int START_NOTIF_WHAT = 1;
-    private static final int NOTIF_DELAY_MS = 300;
-
     /**
      * Volume can be controlled at two different layers, one is at the "stream" level and one at
      * the "device" level. <code>VolumeType</code> encapsulates these two types.
@@ -1018,7 +1009,7 @@ public class MediaCastManager extends BaseCastManager
 
                         @Override
                         public void onStatusUpdated() {
-                            LOGD(TAG, "RemoteMediaPlayer::onStatusUpdated() is reached");
+//                            LOGV(TAG, "RemoteMediaPlayer::onStatusUpdated() is reached");
                             MediaCastManager.this.onRemoteMediaPlayerStatusUpdated();
                         }
                     }
@@ -1028,7 +1019,7 @@ public class MediaCastManager extends BaseCastManager
                     new RemoteMediaPlayer.OnMetadataUpdatedListener() {
                         @Override
                         public void onMetadataUpdated() {
-                            LOGD(TAG, "RemoteMediaPlayer::onMetadataUpdated() is reached");
+//                            LOGV(TAG, "RemoteMediaPlayer::onMetadataUpdated() is reached");
                             MediaCastManager.this.onRemoteMediaPlayerMetadataUpdated();
                         }
                     }
@@ -1235,7 +1226,7 @@ public class MediaCastManager extends BaseCastManager
         LOGD(TAG, "onRemoteMediaPlayerStatusUpdated() reached");
         if (null == mApiClient || null == mRemoteMediaPlayer ||
                 null == mRemoteMediaPlayer.getMediaStatus()) {
-            LOGD(TAG, "mApiClient or mRemoteMediaPlayer is null, so will not proceed");
+            LOGD(TAG, "mApiClient=" +mApiClient+", mRemoteMediaPlayer=" + mRemoteMediaPlayer + ", so will not proceed");
             return;
         }
         mState = mRemoteMediaPlayer.getMediaStatus().getPlayerState();
@@ -1267,7 +1258,7 @@ public class MediaCastManager extends BaseCastManager
      * This is called by onMetadataUpdated() of RemoteMediaPlayer
      */
     public void onRemoteMediaPlayerMetadataUpdated() {
-        LOGD(TAG, "onRemoteMediaPlayerMetadataUpdated() reached");
+//        LOGV(TAG, "onRemoteMediaPlayerMetadataUpdated() reached");
         synchronized (mVideoConsumers) {
             for (IMediaCastConsumer consumer : mVideoConsumers) {
                 try {
