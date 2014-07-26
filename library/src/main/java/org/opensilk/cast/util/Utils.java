@@ -42,7 +42,6 @@ public class Utils {
     private static final String KEY_IMAGES = "images";
     private static final String KEY_URL = "movie-urls";
     private static final String KEY_CONTENT_TYPE = "content-type";
-    private static final String PREF_FILE = "Cast";
 
     /**
      * Formats time in milliseconds to hh:mm:ss string format.
@@ -101,13 +100,7 @@ public class Utils {
      * @param value
      */
     public static void saveStringToPreference(Context context, String key, String value) {
-        SharedPreferences pref = context.getSharedPreferences(PREF_FILE, Context.MODE_MULTI_PROCESS);
-        if (null == value) {
-            // we want to remove
-            pref.edit().remove(key).apply();
-        } else {
-            pref.edit().putString(key, value).apply();
-        }
+        CastPreferences.putString(context, key, value);
     }
 
     /**
@@ -119,14 +112,7 @@ public class Utils {
      * @param value
      */
     public static void saveFloatToPreference(Context context, String key, float value) {
-        SharedPreferences pref = context.getSharedPreferences(PREF_FILE, Context.MODE_MULTI_PROCESS);
-        if (Float.MIN_VALUE == value) {
-            // we want to remove
-            pref.edit().remove(key).apply();
-        } else {
-            pref.edit().putFloat(key, value).apply();
-        }
-
+        CastPreferences.putFloat(context, key, value);
     }
 
     /**
@@ -136,8 +122,7 @@ public class Utils {
      * @param value
      */
     public static void saveBooleanToPreference(Context context, String key, boolean value) {
-        SharedPreferences pref = context.getSharedPreferences(PREF_FILE, Context.MODE_MULTI_PROCESS);
-        pref.edit().putBoolean(key, value).apply();
+        CastPreferences.putBoolean(context, key, value);
     }
 
     /**
@@ -149,8 +134,7 @@ public class Utils {
      * @return
      */
     public static String getStringFromPreference(Context context, String key) {
-        SharedPreferences pref = context.getSharedPreferences(PREF_FILE, Context.MODE_MULTI_PROCESS);
-        return pref.getString(key, null);
+        return CastPreferences.getString(context, key);
     }
 
     /**
@@ -162,8 +146,7 @@ public class Utils {
      * @return
      */
     public static float getFloatFromPreference(Context context, String key) {
-        SharedPreferences pref = context.getSharedPreferences(PREF_FILE, Context.MODE_MULTI_PROCESS);
-        return pref.getFloat(key, Float.MIN_VALUE);
+        return CastPreferences.getFloat(context, key);
     }
 
     /**
@@ -175,10 +158,8 @@ public class Utils {
      * @param defaultValue
      * @return
      */
-    public static boolean getBooleanFromPreference(Context context, String key,
-            boolean defaultValue) {
-        SharedPreferences pref = context.getSharedPreferences(PREF_FILE, Context.MODE_MULTI_PROCESS);
-        return pref.getBoolean(key, defaultValue);
+    public static boolean getBooleanFromPreference(Context context, String key, boolean defaultValue) {
+        return CastPreferences.getBoolean(context, key, defaultValue);
     }
 
     /**
