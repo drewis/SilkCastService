@@ -20,7 +20,6 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -146,7 +145,7 @@ public class Utils {
      * @return
      */
     public static float getFloatFromPreference(Context context, String key) {
-        return CastPreferences.getFloat(context, key);
+        return CastPreferences.getFloat(context, key, Float.MIN_VALUE);
     }
 
     /**

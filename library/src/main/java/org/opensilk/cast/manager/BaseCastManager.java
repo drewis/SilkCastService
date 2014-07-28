@@ -44,6 +44,7 @@ import org.opensilk.cast.exceptions.CastException;
 import org.opensilk.cast.exceptions.NoConnectionException;
 import org.opensilk.cast.exceptions.OnFailedListener;
 import org.opensilk.cast.exceptions.TransientNetworkDisconnectionException;
+import org.opensilk.cast.util.CastPreferences;
 import org.opensilk.cast.util.LogUtils;
 import org.opensilk.cast.util.Utils;
 
@@ -73,13 +74,13 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     public static final int FEATURE_DEBUGGING = 1;
     public static final int FEATURE_NOTIFICATION = 4;
     public static final int FEATURE_LOCKSCREEN = 2;
-    public static final String PREFS_KEY_SESSION_ID = "session-id";
-    public static final String PREFS_KEY_APPLICATION_ID = "application-id";
-    public static final String PREFS_KEY_CAST_ACTIVITY_NAME = "cast-activity-name";
-    public static final String PREFS_KEY_CAST_CUSTOM_DATA_NAMESPACE = "cast-custom-data-namespace";
-    public static final String PREFS_KEY_VOLUME_INCREMENT = "volume-increment";
-    public static final String PREFS_KEY_ROUTE_ID = "route-id";
-    public static final String PREFS_KEY_REMOTE_VOLUME = "volume-remote";
+    public static final String PREFS_KEY_SESSION_ID = CastPreferences.KEY_SESSION_ID;
+    public static final String PREFS_KEY_APPLICATION_ID = CastPreferences.KEY_APPLICATION_ID;
+    public static final String PREFS_KEY_CAST_ACTIVITY_NAME = CastPreferences.KEY_CAST_ACTIVITY_NAME;
+    public static final String PREFS_KEY_CAST_CUSTOM_DATA_NAMESPACE = CastPreferences.KEY_CAST_CUSTOM_DATA_NAMESPACE;
+    public static final String PREFS_KEY_VOLUME_INCREMENT = CastPreferences.KEY_VOLUME_INCREMENT;
+    public static final String PREFS_KEY_ROUTE_ID = CastPreferences.KEY_ROUTE_ID;
+    public static final String PREFS_KEY_REMOTE_VOLUME = CastPreferences.KEY_REMOTE_VOLUME;
 
     public static final int NO_STATUS_CODE = -1;
 

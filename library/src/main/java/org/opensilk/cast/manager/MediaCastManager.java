@@ -42,6 +42,7 @@ import org.opensilk.cast.exceptions.CastException;
 import org.opensilk.cast.exceptions.NoConnectionException;
 import org.opensilk.cast.exceptions.OnFailedListener;
 import org.opensilk.cast.exceptions.TransientNetworkDisconnectionException;
+import org.opensilk.cast.util.CastPreferences;
 import org.opensilk.cast.util.LogUtils;
 import org.opensilk.cast.util.Utils;
 
@@ -133,7 +134,7 @@ public class MediaCastManager extends BaseCastManager
                     .isGooglePlayServicesAvailable(context)) {
                 String msg = "Couldn't find the appropriate version of Goolge Play Services";
                 LOGE(TAG, msg);
-                Utils.saveBooleanToPreference(context, "pref_cast_enabled", false);
+                Utils.saveBooleanToPreference(context, CastPreferences.KEY_CAST_ENABLED, false);
             }
             sInstance = new MediaCastManager(context, applicationId, dataNamespace);
             mCastManager = sInstance;
@@ -380,8 +381,6 @@ public class MediaCastManager extends BaseCastManager
         } else if (volume < 0) {
             volume = 0.0;
         }
-        // Save our new volume so we can restore it later
-        Utils.saveFloatToPreference(mContext, PREFS_KEY_REMOTE_VOLUME, (float) volume);
         if (mVolumeType == VolumeType.STREAM) {
             checkRemoteMediaPlayerAvailable();
             mRemoteMediaPlayer.setStreamVolume(mApiClient, volume).setResultCallback(
@@ -428,6 +427,8 @@ public class MediaCastManager extends BaseCastManager
         } else if (vol < 0) {
             vol = 0;
         }
+        //Save new volume
+        CastPreferences.putFloat(mContext, CastPreferences.KEY_REMOTE_VOLUME, (float) vol);
         setVolume(vol);
     }
 

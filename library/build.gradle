@@ -24,8 +24,8 @@ android {
         applicationId "org.opensilk.cast"
         minSdkVersion 9
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 21000
-        versionName "0.2.1-SNAPSHOT"
+        versionCode 20200
+        versionName "0.2.2-SNAPSHOT"
     }
     buildTypes {
         release {

@@ -29,4 +29,5 @@ interface ICastManager {
     boolean setReconnectionStatus(String status);
     ICastRouteListener getRouteListener();
     boolean retryConnect();
+    float getVolume();
 }

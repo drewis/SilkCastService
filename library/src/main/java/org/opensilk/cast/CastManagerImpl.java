@@ -22,6 +22,7 @@ import org.opensilk.cast.exceptions.CastException;
 import org.opensilk.cast.exceptions.NoConnectionException;
 import org.opensilk.cast.exceptions.TransientNetworkDisconnectionException;
 import org.opensilk.cast.manager.BaseCastManager.ReconnectionStatus;
+import org.opensilk.cast.util.CastPreferences;
 import org.opensilk.cast.util.LogUtils;
 
 import java.lang.ref.WeakReference;
@@ -120,5 +121,18 @@ public class CastManagerImpl extends ICastManager.Stub {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public float getVolume() throws RemoteException {
+        SilkCastService service = mService.get();
+        if (service != null) {
+            try {
+                return (float) service.mCastManager.getVolume();
+            } catch (TransientNetworkDisconnectionException|NoConnectionException e) {
+                return CastPreferences.getFloat(service, CastPreferences.KEY_REMOTE_VOLUME, 1.0f);
+            }
+        }
+        return 1.0f;
     }
 }

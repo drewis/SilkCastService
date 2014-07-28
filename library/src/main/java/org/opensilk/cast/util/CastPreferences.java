@@ -25,6 +25,15 @@ import android.content.SharedPreferences;
  */
 public class CastPreferences {
 
+    public static final String KEY_SESSION_ID = "session-id";
+    public static final String KEY_APPLICATION_ID = "application-id";
+    public static final String KEY_CAST_ACTIVITY_NAME = "cast-activity-name";
+    public static final String KEY_CAST_CUSTOM_DATA_NAMESPACE = "cast-custom-data-namespace";
+    public static final String KEY_VOLUME_INCREMENT = "volume-increment";
+    public static final String KEY_ROUTE_ID = "route-id";
+    public static final String KEY_REMOTE_VOLUME = "volume-remote";
+    public static final String KEY_CAST_ENABLED = "pref_cast_enabled";
+
     private static final String PREF_FILE = "Cast";
 
     private static SharedPreferences getPrefs(Context context) {
@@ -93,16 +102,15 @@ public class CastPreferences {
     }
 
     /**
-     * Retrieves a float value from preference manager. If no such key exists, it will return
-     * <code>Float.MIN_VALUE</code>.
+     * Retrieves a float value from preference manager.
      *
      * @param context
      * @param key
      * @return
      */
-    public static float getFloat(Context context, String key) {
+    public static float getFloat(Context context, String key, float defaultValue) {
         SharedPreferences pref = getPrefs(context);
-        return pref.getFloat(key, Float.MIN_VALUE);
+        return pref.getFloat(key, defaultValue);
     }
 
     /**
