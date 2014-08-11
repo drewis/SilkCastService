@@ -36,8 +36,13 @@ public class CastPreferences {
 
     private static final String PREF_FILE = "Cast";
 
+    private static SharedPreferences prefs;
+
     private static SharedPreferences getPrefs(Context context) {
-        return context.getSharedPreferences(PREF_FILE, Context.MODE_MULTI_PROCESS);
+        if (prefs == null) {
+            prefs = context.getSharedPreferences(PREF_FILE, Context.MODE_MULTI_PROCESS);
+        }
+        return prefs;
     }
 
     /**
