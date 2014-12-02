@@ -12,6 +12,7 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package fi.iki.elonen;
 
 import java.io.BufferedReader;
@@ -25,8 +26,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.PushbackInputStream;
 import java.io.RandomAccessFile;
+import java.io.PushbackInputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -184,7 +185,6 @@ public abstract class NanoHTTPD {
         myThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
                 do {
                     try {
                         final Socket finalAccept = myServerSocket.accept();
@@ -625,7 +625,7 @@ public abstract class NanoHTTPD {
         /**
          * Sends given response to the socket.
          */
-        private void send(OutputStream outputStream) {
+        protected void send(OutputStream outputStream) {
             String mime = mimeType;
             SimpleDateFormat gmtFrmt = new SimpleDateFormat("E, d MMM yyyy HH:mm:ss 'GMT'", Locale.US);
             gmtFrmt.setTimeZone(TimeZone.getTimeZone("GMT"));
@@ -652,7 +652,7 @@ public abstract class NanoHTTPD {
                     }
                 }
 
-                pw.print("Connection: keep-alive\r\n");
+                sendConnectionHeaderIfNotAlreadyPresent(pw, header);
 
                 if (requestMethod != Method.HEAD && chunkedTransfer) {
                     sendAsChunked(outputStream, pw);
@@ -663,6 +663,16 @@ public abstract class NanoHTTPD {
                 safeClose(data);
             } catch (IOException ioe) {
                 // Couldn't write? No can do.
+            }
+        }
+
+        protected void sendConnectionHeaderIfNotAlreadyPresent(PrintWriter pw, Map<String, String> header) {
+            boolean connectionAlreadySent = false;
+            for (String headerName : header.keySet()) {
+                connectionAlreadySent |= headerName.equalsIgnoreCase("connection");
+            }
+            if (!connectionAlreadySent) {
+                pw.print("Connection: keep-alive\r\n");
             }
         }
 
@@ -750,7 +760,7 @@ public abstract class NanoHTTPD {
          * Some HTTP response status codes
          */
         public enum Status {
-            OK(200, "OK"), CREATED(201, "Created"), ACCEPTED(202, "Accepted"), NO_CONTENT(204, "No Content"), PARTIAL_CONTENT(206, "Partial Content"), REDIRECT(301,
+            SWITCH_PROTOCOL(101, "Switching Protocols"), OK(200, "OK"), CREATED(201, "Created"), ACCEPTED(202, "Accepted"), NO_CONTENT(204, "No Content"), PARTIAL_CONTENT(206, "Partial Content"), REDIRECT(301,
                 "Moved Permanently"), NOT_MODIFIED(304, "Not Modified"), BAD_REQUEST(400, "Bad Request"), UNAUTHORIZED(401,
                 "Unauthorized"), FORBIDDEN(403, "Forbidden"), NOT_FOUND(404, "Not Found"), METHOD_NOT_ALLOWED(405, "Method Not Allowed"), RANGE_NOT_SATISFIABLE(416,
                 "Requested Range Not Satisfiable"), INTERNAL_ERROR(500, "Internal Server Error");
