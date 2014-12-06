@@ -16,6 +16,7 @@
 
 package org.opensilk.cast;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.os.Message;
 import android.os.Messenger;
@@ -26,6 +27,7 @@ import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.common.ConnectionResult;
 
 import org.opensilk.cast.callbacks.IMediaCastConsumer;
+import org.opensilk.cast.util.CastPreferences;
 
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
@@ -93,6 +95,10 @@ public class CastServiceConsumer implements IMediaCastConsumer {
 
     @Override
     public void onVolumeChanged(double value, boolean isMute) {
+        Context ctx = mService.get();
+        if (ctx != null) {
+            CastPreferences.putFloat(ctx, CastPreferences.KEY_REMOTE_VOLUME, (float)value);
+        }
         sendMessage(CAST_VOLUME_CHANGED);
     }
 
